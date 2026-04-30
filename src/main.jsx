@@ -21,13 +21,19 @@ const BODY_CLASS_BY_PAGE = {
 };
 
 function currentPage() {
-  const file = window.location.pathname.split("/").pop();
+  const basePath = new URL(import.meta.env.BASE_URL, window.location.origin).pathname;
+  const pathname = window.location.pathname.startsWith(basePath)
+    ? window.location.pathname.slice(basePath.length)
+    : window.location.pathname.slice(1);
+  const file = pathname.split("/").pop();
   return file && file.endsWith(".html") ? file : "index.html";
 }
 
 function routeTo(page, search = "") {
-  const next = page === "index.html" ? "/" : `/${page}`;
-  window.history.pushState({}, "", `${next}${search}`);
+  const basePath = new URL(import.meta.env.BASE_URL, window.location.origin).pathname;
+  const pagePath = page === "index.html" ? "" : page;
+  const next = `${basePath}${pagePath}${search}`;
+  window.history.pushState({}, "", next);
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
 
@@ -297,3 +303,4 @@ async function runLoginController() {
 }
 
 createRoot(document.getElementById("root")).render(<App />);
+
