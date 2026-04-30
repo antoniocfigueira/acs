@@ -22,6 +22,22 @@ body.dm-page [data-react-page] {
   flex-direction: column;
 }
 
+body.chat-page {
+  height: 100dvh;
+  overflow: hidden;
+  padding-bottom: 0 !important;
+}
+
+body.chat-page [data-react-page="chat.html"] {
+  height: 100dvh;
+  padding-bottom: calc(62px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+body.chat-page.keyboard-open [data-react-page="chat.html"] {
+  padding-bottom: 0;
+}
+
 body.chat-page .chat-wrap,
 body.dm-page .dm-list,
 body.dm-page .thread-wrap {
@@ -37,4 +53,171 @@ body.dm-page .dm-footer {
 body.chat-page .bottom-nav,
 body.dm-page .bottom-nav {
   flex: 0 0 auto;
+}
+
+body.chat-page .chat-footer {
+  margin-bottom: 0 !important;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom)) !important;
+}
+
+body.chat-page .chat-input {
+  margin-bottom: 0 !important;
+}
+
+.bottom-nav a.create::before {
+  animation-delay: var(--fab-phase, 0s) !important;
+}
+
+.role-badge-button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.admin-badge.role-badge-button {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--grad);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
+.admin-badge.role-badge-button svg {
+  width: 10px;
+  height: 10px;
+}
+
+.mod-pill.role-badge-button {
+  background: rgba(59, 130, 246, .18);
+  color: #93c5fd;
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+
+.drawer {
+  z-index: 1100;
+}
+
+.drawer-backdrop {
+  z-index: 1090;
+}
+
+.drawer-me {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.drawer-me-text,
+.drawer-me-name,
+.drawer-me-user {
+  text-align: left;
+}
+
+.drawer-me-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.settings-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+}
+
+.theme-grid {
+  align-items: stretch;
+}
+
+.theme-option .theme-preview {
+  display: block;
+  width: 100%;
+  min-height: 72px;
+}
+
+.theme-option .theme-name {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  z-index: 2;
+}
+
+.archive-section-actions .icon-btn,
+.archive-entry-actions .icon-btn {
+  display: grid;
+  place-items: center;
+  color: var(--text);
+}
+
+.role-chip-mini {
+  background: linear-gradient(135deg, #8b5cf6, #ec4899);
+}
+
+.profile-cta {
+  margin: 8px 16px 18px;
+}
+
+body.dm-page.dm-thread-open .bottom-nav {
+  display: none;
+}
+
+body.dm-page.dm-thread-open,
+body.dm-page.dm-thread-open #root,
+body.dm-page.dm-thread-open [data-react-page] {
+  height: 100dvh;
+  min-height: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+}
+
+body.dm-page.dm-thread-open .thread-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+body.dm-page.dm-thread-open .dm-footer {
+  margin-bottom: 0 !important;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom)) !important;
+}
+
+body.dm-page.dm-thread-open .dm-input {
+  margin-bottom: 0 !important;
+}
+
+@media (hover: none) {
+  .msg-delete-btn,
+  .msg-edit-btn {
+    opacity: .78;
+  }
+}
+
+.msg-delete-btn,
+.msg-edit-btn {
+  opacity: .78;
+}
+
+.profile-pic {
+  display: grid;
+  place-items: center;
+}
+
+.profile-pic img,
+.profile-pic .avatar-fallback {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+
+.profile-pic .avatar-fallback {
+  display: grid;
+  place-items: center;
 }

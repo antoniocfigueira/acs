@@ -1,13 +1,15 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 export function SheetModal({ title, children, onClose }) {
-  return (
+  const node = (
     <div
+      className="sheet-modal-backdrop"
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 200,
+        zIndex: 1200,
         display: "flex",
         alignItems: "flex-end",
         justifyContent: "center",
@@ -42,4 +44,33 @@ export function SheetModal({ title, children, onClose }) {
       <style>{`@keyframes slideUp { from { transform: translateY(100%);} to { transform: translateY(0);} }`}</style>
     </div>
   );
+  return createPortal(node, document.body);
+}
+
+export function SideDrawer({ children, onClose }) {
+  const [closing, setClosing] = useState(false);
+  const close = () => {
+    if (closing) return;
+    setClosing(true);
+    window.setTimeout(() => onClose?.(), 340);
+  };
+
+  useEffect(() => {
+    document.body.classList.add("drawer-open");
+    document.documentElement.classList.add("drawer-open");
+    return () => {
+      document.body.classList.remove("drawer-open");
+      document.documentElement.classList.remove("drawer-open");
+    };
+  }, []);
+
+  const node = (
+    <>
+      <div className={`drawer-backdrop ${closing ? "" : "open"}`} onClick={close} />
+      <aside id="drawer" className={`drawer ${closing ? "" : "open"}`} role="dialog" aria-modal="true">
+        {typeof children === "function" ? children({ close }) : children}
+      </aside>
+    </>
+  );
+  return createPortal(node, document.body);
 }

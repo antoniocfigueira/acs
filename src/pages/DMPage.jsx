@@ -116,6 +116,7 @@ function InboxRow({ row }) {
 }
 
 function DMMessage({ message, other, user, profile, chatId }) {
+  const [editing, setEditing] = useState(false);
   const mine = message.uid === user.uid;
   const canDelete = mine || profile?.isAdmin;
   const canEdit = mine || profile?.isAdmin;
@@ -130,8 +131,10 @@ function DMMessage({ message, other, user, profile, chatId }) {
   };
 
   const editMessage = async () => {
-    const next = prompt("Editar mensagem:", message.text || "");
-    if (next === null) return;
+    setEditing(true);
+  };
+
+  const saveEdit = async (next) => {
     const text = next.trim();
     if (!text || text === message.text) return;
     try {
@@ -140,6 +143,7 @@ function DMMessage({ message, other, user, profile, chatId }) {
         editedAt: serverTimestamp(),
         editedBy: user.uid
       });
+      setEditing(false);
     } catch (err) {
       toast(`Erro: ${err.message}`, "error");
     }
@@ -168,7 +172,18 @@ function DMMessage({ message, other, user, profile, chatId }) {
           {timeAgo(message.at)} {message.editedAt ? <span className="msg-edited">(editado)</span> : null}
         </div>
       </div>
+      {editing ? <DmMessageEditModal initial={message.text || ""} onClose={() => setEditing(false)} onSave={saveEdit} /> : null}
     </div>
+  );
+}
+
+function DmMessageEditModal({ initial, onClose, onSave }) {
+  const [text, setText] = useState(initial);
+  return (
+    <SheetModal title="Editar mensagem" onClose={onClose}>
+      <textarea className="input" rows="4" maxLength="1000" value={text} onChange={(event) => setText(event.target.value)} style={{ width: "100%", padding: 12, fontFamily: "inherit" }} />
+      <button className="btn-primary" type="button" style={{ width: "100%", marginTop: 10 }} onClick={() => onSave(text)}>Guardar</button>
+    </SheetModal>
   );
 }
 

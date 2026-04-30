@@ -95,6 +95,7 @@ function NavLink({ page, active, label, children, className = "" }) {
 }
 
 export function BottomNav({ active }) {
+  const fabPhase = `${-((Date.now() % 10000) / 1000)}s`;
   return (
     <nav className="bottom-nav">
       <NavLink page="index.html" active={active === "index.html"} label="Inicio">
@@ -107,6 +108,7 @@ export function BottomNav({ active }) {
         href={hrefFor("index.html", "", "#create")}
         className="create"
         aria-label="Criar post"
+        style={{ "--fab-phase": fabPhase }}
         onClick={(event) => {
           event.preventDefault();
           routeTo("index.html", "", "#create");
@@ -114,13 +116,23 @@ export function BottomNav({ active }) {
       >
         <Plus size={22} />
       </a>
-      <NavLink page="chat.html" active={active === "chat.html"} label="Chat">
-        <Users size={22} />
+      <NavLink page="chat.html" active={active === "chat.html"} label="Chat Global">
+        <LegacyChatIcon />
       </NavLink>
       <NavLink page="profile.html" active={active === "profile.html"} label="Eu">
         <User size={22} />
       </NavLink>
     </nav>
+  );
+}
+
+function LegacyChatIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <ellipse cx="12" cy="12" rx="4" ry="9" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+    </svg>
   );
 }
 

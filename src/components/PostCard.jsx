@@ -14,16 +14,20 @@ import {
   serverTimestamp,
   updateDoc
 } from "firebase/firestore";
-import { Heart, MessageCircle, ThumbsDown, Trash2 } from "lucide-react";
+import { Edit3, Heart, MessageCircle, MoreHorizontal, Pin, ThumbsDown, Trash2 } from "lucide-react";
 import { db } from "../lib/firebase.js";
 import { routeTo } from "../lib/navigation.js";
 import { Avatar, RoleBadges, StyledName, timeAgo, toast } from "../lib/ui.jsx";
+import { SheetModal } from "./Modal.jsx";
 
 export function PostCard({ post, user, profile, compact = false }) {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [myVote, setMyVote] = useState(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
   const mine = post.uid === user?.uid;
   const canDelete = mine || profile?.isAdmin || profile?.role === "mod";
+  const canEdit = mine || profile?.isAdmin;
   const isPinned = post.pinnedUntil && post.pinnedUntil > Date.now();
   const author = useMemo(() => ({
     uid: post.uid,
@@ -91,6 +95,15 @@ export function PostCard({ post, user, profile, compact = false }) {
     }
   };
 
+  const pinPost = async () => {
+    try {
+      await updateDoc(doc(db, "posts", post.id), { pinnedUntil: isPinned ? null : Date.now() + 24 * 60 * 60 * 1000 });
+      setAdminOpen(false);
+    } catch (err) {
+      toast(`Erro: ${err.message}`, "error");
+    }
+  };
+
   return (
     <article className={`post ${isPinned ? "pinned" : ""}`} data-id={post.id} data-uid={post.uid}>
       <div className="post-head">
@@ -121,6 +134,16 @@ export function PostCard({ post, user, profile, compact = false }) {
             {post.editedAt ? <span style={{ fontStyle: "italic", opacity: 0.75 }}> · editado</span> : null}
           </div>
         </div>
+        {profile?.isAdmin ? (
+          <button className="btn-icon tap post-admin-btn" type="button" aria-label="Admin" title="Acoes admin" onClick={() => setAdminOpen(true)}>
+            <MoreHorizontal size={16} />
+          </button>
+        ) : null}
+        {canEdit ? (
+          <button className="btn-icon tap" type="button" aria-label="Editar" onClick={() => setEditOpen(true)}>
+            <Edit3 size={16} />
+          </button>
+        ) : null}
         {canDelete ? (
           <button className="btn-icon tap" type="button" aria-label="Apagar" onClick={deletePost}>
             <Trash2 size={16} />
@@ -151,7 +174,44 @@ export function PostCard({ post, user, profile, compact = false }) {
           <div className={`comments ${commentsOpen ? "" : "hidden"}`}>{commentsOpen ? <Comments post={post} user={user} profile={profile} /> : null}</div>
         </>
       ) : null}
+      {editOpen ? <EditPostModal post={post} onClose={() => setEditOpen(false)} /> : null}
+      {adminOpen ? (
+        <SheetModal title="Acoes admin" onClose={() => setAdminOpen(false)}>
+          <button className="drawer-item w-full" type="button" onClick={pinPost}><Pin size={18} /><span className="drawer-label">{isPinned ? "Desafixar post" : "Fixar por 24h"}</span></button>
+          <button className="drawer-item w-full" type="button" onClick={() => setEditOpen(true)}><Edit3 size={18} /><span className="drawer-label">Editar post</span></button>
+          <button className="drawer-item w-full" type="button" onClick={deletePost}><Trash2 size={18} /><span className="drawer-label">Apagar post</span></button>
+        </SheetModal>
+      ) : null}
     </article>
+  );
+}
+
+function EditPostModal({ post, onClose }) {
+  const [text, setText] = useState(post.text || "");
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    setBusy(true);
+    try {
+      await updateDoc(doc(db, "posts", post.id), {
+        text: text.trim().slice(0, 500),
+        editedAt: serverTimestamp()
+      });
+      toast("Post atualizado");
+      onClose();
+    } catch (err) {
+      toast(`Erro: ${err.message}`, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <SheetModal title="Editar post" onClose={onClose}>
+      <textarea className="input" rows="6" maxLength="500" value={text} onChange={(event) => setText(event.target.value)} style={{ width: "100%", padding: 12, fontFamily: "inherit", resize: "vertical" }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
+        <div className="char-count">{text.length} / 500</div>
+        <button className="btn-primary" type="button" onClick={save} disabled={busy}>Guardar</button>
+      </div>
+    </SheetModal>
   );
 }
 
@@ -177,6 +237,7 @@ function PostMedia({ post }) {
 function PollBlock({ post, user }) {
   const poll = post.poll;
   const [myPollVote, setMyPollVote] = useState(null);
+  const [sliderValue, setSliderValue] = useState(50);
 
   useEffect(() => {
     if (!poll || !user?.uid || !post.id) return undefined;
@@ -251,11 +312,17 @@ function PollBlock({ post, user }) {
     const avg = poll.count ? Math.round((poll.sum || 0) / poll.count) : 0;
     return (
       <div className="poll" data-poll-kind="slider">
-        <div className="poll-title">{poll.question || "Sondagem"}</div>
-        <div className="poll-slider-result">
-          Media: <b>{avg}</b> · {poll.count || 0} votos {myPollVote?.value != null ? `· tu: ${myPollVote.value}` : ""}
+        {poll.question ? <div className="poll-question">{poll.question}</div> : null}
+        <div className="poll-slider-row">
+          <input className="poll-slider-input" type="range" min="0" max="100" value={sliderValue} onChange={(event) => setSliderValue(Number(event.target.value) || 0)} />
+          <div className="poll-slider-value">{sliderValue}</div>
         </div>
-        <input type="range" min="0" max="100" defaultValue={myPollVote?.value ?? avg ?? 50} onChange={(event) => voteSlider(event.target.value)} />
+        <button type="button" className="btn-primary tap poll-slider-vote" onClick={() => voteSlider(sliderValue)}>Votar</button>
+        <div className="poll-slider-result">
+          <div className="cell"><div className="val">{avg}</div><div className="label">Media</div></div>
+          <div className="cell"><div className="val">{poll.count || 0}</div><div className="label">Votos</div></div>
+          <div className="cell"><div className="val">{myPollVote?.value ?? "-"}</div><div className="label">Teu voto</div></div>
+        </div>
       </div>
     );
   }
@@ -264,12 +331,12 @@ function PollBlock({ post, user }) {
   const total = options.reduce((sum, opt) => sum + (opt.votes || 0), 0);
   return (
     <div className="poll" data-poll-kind="options">
-      <div className="poll-title">{poll.question || "Sondagem"}</div>
+      {poll.question ? <div className="poll-question">{poll.question}</div> : null}
       {options.map((option, idx) => {
         const votes = option.votes || 0;
         const pct = total ? Math.round((votes / total) * 100) : 0;
         return (
-          <button key={`${option.text}-${idx}`} type="button" className={`poll-option ${myPollVote?.choice === idx ? "voted" : ""}`} onClick={() => voteOption(idx)}>
+          <button key={`${option.text}-${idx}`} type="button" data-poll-opt={idx} className={`poll-option ${myPollVote?.choice === idx ? "voted" : ""}`} onClick={() => voteOption(idx)}>
             <span className="poll-option-fill" style={{ width: `${pct}%` }} />
             <span className="poll-option-text">{option.text}</span>
             <span className="poll-option-pct">{pct}%</span>

@@ -76,19 +76,38 @@ export function StyledName({ user }) {
 }
 
 export function RoleBadges({ user }) {
+  const showInfo = (role, event) => {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    const isAdmin = role === "admin";
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.68);backdrop-filter:blur(8px);";
+    wrap.innerHTML = `
+      <div style="background:#121212;border:1px solid var(--border);border-radius:18px;padding:24px 22px 18px;width:min(92vw,360px);box-shadow:0 24px 60px -10px rgba(0,0,0,.7);text-align:center;">
+        <div style="display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.28);margin:0 auto 10px;color:${isAdmin ? "#fde047" : "#a78bfa"};font-weight:800;">${isAdmin ? "A" : "M"}</div>
+        <h3 style="margin:0 0 4px;font-size:17px;font-weight:700;letter-spacing:-.01em;">${isAdmin ? "Administrador" : "Moderador"}</h3>
+        <p style="margin:0;color:var(--muted);font-size:14px;line-height:1.4;">Este utilizador tem acesso de ${isAdmin ? "Administrador" : "Moderador"}.</p>
+        <button type="button" data-close style="margin-top:16px;width:100%;padding:11px;border-radius:12px;background:var(--grad);color:white;font-weight:600;font-size:14px;">Fechar</button>
+      </div>
+    `;
+    document.body.appendChild(wrap);
+    wrap.addEventListener("click", (ev) => {
+      if (ev.target === wrap || ev.target.closest("[data-close]")) wrap.remove();
+    });
+  };
   return (
     <>
       {user?.isAdmin ? (
-        <span className="admin-badge role-badge" title="Admin" aria-label="Admin">
+        <button type="button" className="admin-badge role-badge role-badge-button" title="Admin" aria-label="Admin" onClick={(event) => showInfo("admin", event)}>
           <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
             <path d="M12 2l2.39 5.46L20 8.27l-4.19 3.94L17.03 18 12 15.27 6.97 18l1.22-5.79L4 8.27l5.61-.81L12 2z" />
           </svg>
-        </span>
+        </button>
       ) : null}
       {user?.isMod || user?.role === "mod" ? (
-        <span className="mod-pill role-badge" title="Moderador">
+        <button type="button" className="mod-pill role-badge role-badge-button" title="Moderador" onClick={(event) => showInfo("mod", event)}>
           mod
-        </span>
+        </button>
       ) : null}
     </>
   );

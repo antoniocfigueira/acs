@@ -165,6 +165,15 @@ function App() {
   const [route, setRoute] = useState(currentRoute);
 
   useEffect(() => {
+    try {
+      const theme = localStorage.getItem("acs_theme_v1") || "dark";
+      document.documentElement.setAttribute("data-theme", theme);
+    } catch {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  }, []);
+
+  useEffect(() => {
     const onPop = () => setRoute(currentRoute());
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);

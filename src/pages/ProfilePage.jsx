@@ -12,7 +12,7 @@ import {
   updateDoc,
   where
 } from "firebase/firestore";
-import { Edit3, LogOut, MessageCircle, Share2 } from "lucide-react";
+import { Edit3, LogOut, Share2 } from "lucide-react";
 import { AppHeader, BottomNav, GradientDefs, PageFrame } from "../components/Shell.jsx";
 import { SheetModal } from "../components/Modal.jsx";
 import { PostCard } from "../components/PostCard.jsx";
@@ -130,6 +130,45 @@ function EditProfileModal({ profile, onClose }) {
   );
 }
 
+function FollowListModal({ title, uids, empty, onClose }) {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const rows = [];
+        for (const uid of uids || []) {
+          const snap = await getDoc(doc(db, "users", uid));
+          if (snap.exists()) rows.push({ uid, ...snap.data() });
+        }
+        rows.sort((a, b) => (a.name || a.username || "").localeCompare(b.name || b.username || ""));
+        if (alive) setUsers(rows);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [uids]);
+  return (
+    <SheetModal title={title} onClose={onClose}>
+      <div style={{ maxHeight: "60vh", overflowY: "auto", margin: "-6px -4px 0" }}>
+        {loading ? <Loading /> : null}
+        {!loading && !users.length ? <div className="user-list-empty">{empty}</div> : null}
+        {users.map((item) => (
+          <button key={item.uid} className="user-list-item tap" type="button" onClick={() => { onClose(); routeTo("profile.html", `?u=${encodeURIComponent(item.username || "")}`); }}>
+            <div className="user-list-avatar"><Avatar user={item} size={42} /></div>
+            <div className="user-list-meta">
+              <div className="user-list-name"><StyledName user={item} /><RoleBadges user={item} /></div>
+              <div className="user-list-user">@{item.username || ""}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </SheetModal>
+  );
+}
+
 export function ProfilePage({ search }) {
   const { loading: authLoading, user, profile: currentProfile, error: authError } = useAuthProfile({ requireUser: true });
   const params = useMemo(() => new URLSearchParams(search || ""), [search]);
@@ -138,11 +177,15 @@ export function ProfilePage({ search }) {
   const posts = useUserPosts(viewed.profile?.uid);
   const [tab, setTab] = useState("posts");
   const [editOpen, setEditOpen] = useState(false);
+  const [followList, setFollowList] = useState(null);
 
   const isMe = user?.uid && viewed.profile?.uid === user.uid;
   const followers = Array.isArray(viewed.profile?.followers) ? viewed.profile.followers : [];
   const following = Array.isArray(viewed.profile?.following) ? viewed.profile.following : [];
-  const iFollow = followers.includes(user?.uid);
+  const myFollowing = Array.isArray(currentProfile?.following) ? currentProfile.following : [];
+  const iFollow = viewed.profile?.uid ? myFollowing.includes(viewed.profile.uid) : false;
+  const blocked = Array.isArray(currentProfile?.blocked) ? currentProfile.blocked : [];
+  const isBlocked = viewed.profile?.uid ? blocked.includes(viewed.profile.uid) : false;
 
   const follow = async () => {
     if (!user?.uid || !viewed.profile?.uid || isMe) return;
@@ -155,6 +198,24 @@ export function ProfilePage({ search }) {
       } else {
         await updateDoc(myRef, { following: arrayUnion(viewed.profile.uid) });
         await updateDoc(themRef, { followers: arrayUnion(user.uid) });
+      }
+    } catch (err) {
+      toast(`Erro: ${err.message}`, "error");
+    }
+  };
+
+  const block = async () => {
+    if (!user?.uid || !viewed.profile?.uid || isMe) return;
+    try {
+      const myRef = doc(db, "users", user.uid);
+      if (isBlocked) {
+        await updateDoc(myRef, { blocked: arrayRemove(viewed.profile.uid) });
+        toast("Desbloqueado", "success");
+      } else {
+        if (!confirm("Bloquear este utilizador? Deixaras de ver os posts dele.")) return;
+        await updateDoc(myRef, { blocked: arrayUnion(viewed.profile.uid), following: arrayRemove(viewed.profile.uid) });
+        await updateDoc(doc(db, "users", viewed.profile.uid), { followers: arrayRemove(user.uid) }).catch(() => {});
+        toast("Bloqueado", "success");
       }
     } catch (err) {
       toast(`Erro: ${err.message}`, "error");
@@ -197,15 +258,16 @@ export function ProfilePage({ search }) {
               <div className="profile-bio">{(viewed.profile.bio || "").trim() || (isMe ? "Adiciona uma bio ao teu perfil..." : "")}</div>
               <div className="profile-stats">
                 <div className="stat"><div className="n">{posts.posts.length || viewed.profile.postsCount || 0}</div><div className="l">Posts</div></div>
-                <div className="stat stat-clickable tap"><div className="n">{followers.length}</div><div className="l">Seguidores</div></div>
-                <div className="stat stat-clickable tap"><div className="n">{following.length}</div><div className="l">A seguir</div></div>
+                <button className="stat stat-clickable tap" type="button" onClick={() => setFollowList("followers")}><div className="n">{followers.length}</div><div className="l">Seguidores</div></button>
+                <button className="stat stat-clickable tap" type="button" onClick={() => setFollowList("following")}><div className="n">{following.length}</div><div className="l">A seguir</div></button>
                 <div className="stat"><div className="n grad-text">{viewed.profile.points || 0}</div><div className="l">Pontos</div></div>
               </div>
               <div className="profile-cta">
-                {isMe ? <button className="btn-primary" type="button" onClick={() => setEditOpen(true)}><Edit3 size={16} /> Editar perfil</button> : null}
-                {!isMe ? <button className="btn-primary" type="button" onClick={follow}>{iFollow ? "A seguir" : "Seguir"}</button> : null}
-                {!isMe ? <button className="btn-primary" type="button" onClick={openDm}><MessageCircle size={16} /> Mensagem</button> : null}
-                {isMe ? <button className="btn-ghost" type="button" onClick={async () => { if (confirm("Sair da conta?")) await logout(); }}><LogOut size={16} /> Sair</button> : null}
+                {isMe ? <button className="btn-primary" type="button" onClick={() => setEditOpen(true)}>Editar perfil</button> : null}
+                {!isMe ? <button className={iFollow ? "btn-ghost" : "btn-primary"} type="button" onClick={follow}>{iFollow ? "A seguir" : "Seguir"}</button> : null}
+                {!isMe ? <button className="btn-primary" type="button" onClick={openDm}>Mensagem</button> : null}
+                {!isMe ? <button className="btn-ghost" type="button" onClick={block}>{isBlocked ? "Desbloquear" : "Bloquear"}</button> : null}
+                {isMe ? <button className="btn-ghost" type="button" onClick={async () => { if (confirm("Sair da conta?")) await logout(); }}>Sair</button> : null}
               </div>
             </div>
 
@@ -235,6 +297,8 @@ export function ProfilePage({ search }) {
       </div>
       <BottomNav active="profile.html" />
       {editOpen && viewed.profile ? <EditProfileModal profile={viewed.profile} onClose={() => setEditOpen(false)} /> : null}
+      {followList === "followers" ? <FollowListModal title="Seguidores" uids={followers} empty="Ainda ninguem segue este perfil." onClose={() => setFollowList(null)} /> : null}
+      {followList === "following" ? <FollowListModal title="A seguir" uids={following} empty="Este perfil ainda nao segue ninguem." onClose={() => setFollowList(null)} /> : null}
     </PageFrame>
   );
 }
