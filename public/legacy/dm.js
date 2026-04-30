@@ -615,7 +615,7 @@ async function openNewConvPicker() {
         close();
         // Navigate rather than calling openThread() directly, so reload /
         // back-button behaviour matches the existing dm row click path.
-        location.href = `./dm.html?c=${encodeURIComponent(chatId)}&to=${encodeURIComponent(otherUid)}`;
+        window.__alfaNavigate?.(`./dm.html?c=${encodeURIComponent(chatId)}&to=${encodeURIComponent(otherUid)}`) || (location.href = `./dm.html?c=${encodeURIComponent(chatId)}&to=${encodeURIComponent(otherUid)}`);
       });
     });
   };

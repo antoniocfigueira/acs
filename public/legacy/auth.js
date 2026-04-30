@@ -148,7 +148,7 @@ export async function loginUser({ email, password }) {
 // Logout ───────────────────────────────────────────────
 export async function logout() {
   await signOut(auth);
-  window.location.href = "./login.html";
+  window.__alfaNavigate?.("./login.html") || (window.location.href = "./login.html");
 }
 
 // Obter perfil do user atual ───────────────────────────
@@ -349,7 +349,7 @@ export function requireAuth(onReady) {
         _writeSelfUidToIDB("");
         const here = window.location.pathname.split("/").pop() || "";
         if (here !== "login.html" && here !== "") {
-          window.location.replace("./login.html");
+          window.__alfaNavigate?.("./login.html") || window.location.replace("./login.html");
         }
         resolve(null);
         return;
@@ -372,7 +372,7 @@ export function redirectIfAuthed() {
     // Never redirect away from login during an active registration,
     // otherwise index.html's ensureProfile would race the profile write
     // and generate a random @username.
-    if (user && !isRegistering()) window.location.replace("./index.html");
+    if (user && !isRegistering()) window.__alfaNavigate?.("./index.html") || window.location.replace("./index.html");
   });
 }
 

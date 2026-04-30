@@ -133,7 +133,7 @@ function renderProfile() {
       dmBtn.classList.remove("hidden");
       dmBtn.addEventListener("click", () => {
         const chatId = buildDmChatId(CURRENT_USER.uid, p.uid);
-        location.href = `./dm.html?c=${encodeURIComponent(chatId)}&to=${encodeURIComponent(p.uid)}`;
+        window.__alfaNavigate?.(`./dm.html?c=${encodeURIComponent(chatId)}&to=${encodeURIComponent(p.uid)}`) || (location.href = `./dm.html?c=${encodeURIComponent(chatId)}&to=${encodeURIComponent(p.uid)}`);
       });
     }
     // Follow / Block buttons

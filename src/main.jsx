@@ -113,6 +113,15 @@ function routeTo(page, search = "", hash = "") {
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
 
+function navigateHref(rawHref) {
+  const local = normalizeLocalHref(rawHref);
+  if (!local) return false;
+  routeTo(local.page, local.search, local.hash);
+  return true;
+}
+
+window.__alfaNavigate = navigateHref;
+
 function normalizeLocalHref(rawHref) {
   if (!rawHref || rawHref === "#") return null;
   let url;

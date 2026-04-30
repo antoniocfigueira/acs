@@ -416,7 +416,7 @@ export function wireHeaderNotifButton(user) {
   // Default click → open notifs panel on index
   if (!btn._wired) {
     btn.addEventListener("click", () => {
-      location.href = "./index.html?notifs=1";
+      window.__alfaNavigate?.("./index.html?notifs=1") || (location.href = "./index.html?notifs=1");
     });
     btn._wired = true;
   }
@@ -734,7 +734,7 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.addEventListener("message", (e) => {
     const t = e?.data?.type;
     if (t === "navigate" && typeof e.data.url === "string") {
-      location.href = e.data.url;
+      window.__alfaNavigate?.(e.data.url) || (location.href = e.data.url);
     } else if (t === "sw-updated" && !_reloadingForSWUpdate) {
       _reloadingForSWUpdate = true;
       // Small delay so the new SW fully takes control first.
