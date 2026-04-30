@@ -40,10 +40,11 @@ export async function registerMessagingSW() {
   if (!("serviceWorker" in navigator)) return null;
   try {
     // Scope must be a subpath so it doesn't clobber the main SW.
-    // The SW file itself lives at ./firebase-messaging-sw.js (site root).
+    // Resolve from this module so GitHub Pages subpaths such as /acs2/ work.
+    const appRoot = new URL("../", import.meta.url);
     const reg = await navigator.serviceWorker.register(
-      "/firebase-messaging-sw.js",
-      { scope: "/firebase-cloud-messaging-push-scope/" }
+      new URL("firebase-messaging-sw.js", appRoot),
+      { scope: new URL("firebase-cloud-messaging-push-scope/", appRoot).pathname }
     );
     // Wait until the SW is active so getToken() doesn't race.
     if (reg.installing) {
