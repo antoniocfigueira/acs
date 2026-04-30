@@ -56,12 +56,12 @@ function LegacyPage({ page }) {
     let cancelled = false;
     const load = async () => {
       if (page === "login.html") {
-        await import(/* @vite-ignore */ `/legacy/auth.js?react=${Date.now()}`);
+        await import(/* @vite-ignore */ `${import.meta.env.BASE_URL}legacy/auth.js?react=${Date.now()}`);
         await runLoginController();
         return;
       }
       if (script) {
-        await import(/* @vite-ignore */ `/legacy/${script}?react=${Date.now()}`);
+        await import(/* @vite-ignore */ `${import.meta.env.BASE_URL}legacy/${script}?react=${Date.now()}`);
       }
     };
 
@@ -115,10 +115,10 @@ function App() {
 }
 
 async function runLoginController() {
-  const { loginUser, registerUser, redirectIfAuthed } = await import(/* @vite-ignore */ `/legacy/auth.js?login=${Date.now()}`);
-  const { auth } = await import(/* @vite-ignore */ `/legacy/firebase-config.js?login=${Date.now()}`);
+  const { loginUser, registerUser, redirectIfAuthed } = await import(/* @vite-ignore */ `${import.meta.env.BASE_URL}legacy/auth.js?login=${Date.now()}`);
+  const { auth } = await import(/* @vite-ignore */ `${import.meta.env.BASE_URL}legacy/firebase-config.js?login=${Date.now()}`);
 
-  import(/* @vite-ignore */ `/legacy/sw-register.js?login=${Date.now()}`).catch(() => {});
+  import(/* @vite-ignore */ `${import.meta.env.BASE_URL}legacy/sw-register.js?login=${Date.now()}`).catch(() => {});
 
   try {
     const opts = auth?.app?.options || {};
