@@ -27,6 +27,10 @@ import { initArchive, openUserRolesEditor } from "./archive.js";
 let CURRENT_USER = null;   // firebase user
 let CURRENT_PROFILE = null; // firestore profile
 let unsubscribers = [];
+window.__alfaPageScope?.addCleanup(() => {
+  for (const u of unsubscribers) try { u(); } catch {}
+  unsubscribers = [];
+});
 let pendingMedia = null;  // { file, url?, type } — set by attach button
 let pendingPoll = null;   // { kind: "options" | "slider", question, options?: [{ text }], min?, max? }
 

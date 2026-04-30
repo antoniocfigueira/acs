@@ -19,6 +19,11 @@ import "./sw-register.js";
 
 let ME = null;      // firebase user
 let PROFILE = null; // firestore profile
+let unsubscribers = [];
+window.__alfaPageScope?.addCleanup(() => {
+  for (const u of unsubscribers) try { u(); } catch {}
+  unsubscribers = [];
+});
 
 const chatWrap = document.getElementById("chatWrap");
 const input = document.getElementById("chatInput");
@@ -132,7 +137,7 @@ function bootChat() {
   chatWrap.innerHTML = "";
 
   let lastDayKey = "";
-  onChildAdded(messagesRef, (snap) => {
+  unsubscribers.push(onChildAdded(messagesRef, (snap) => {
     const m = snap.val();
     if (!m) return;
     const wasAtBottom = isAtBottom();
@@ -151,10 +156,10 @@ function bootChat() {
     }
     if (firstLoadDone && wasAtBottom) scrollToBottom();
     if (!firstLoadDone) pending.push(true);
-  });
+  }));
 
   // Remove deleted messages from the DOM
-  onChildRemoved(messagesRef, (snap) => {
+  unsubscribers.push(onChildRemoved(messagesRef, (snap) => {
     const el = chatWrap.querySelector(`.msg[data-key="${snap.key}"]`);
     if (el) {
       el.style.transition = "opacity .25s, transform .25s";
@@ -162,10 +167,10 @@ function bootChat() {
       el.style.transform = "translateX(-30px)";
       setTimeout(() => el.remove(), 250);
     }
-  });
+  }));
 
   // Update edited messages in place (god-mode edits from any admin)
-  onChildChanged(messagesRef, (snap) => {
+  unsubscribers.push(onChildChanged(messagesRef, (snap) => {
     const m = snap.val();
     if (!m) return;
     const el = chatWrap.querySelector(`.msg[data-key="${snap.key}"]`);
@@ -177,15 +182,15 @@ function bootChat() {
     if (metaEl && m.editedAt && !metaEl.querySelector(".msg-edited")) {
       metaEl.insertAdjacentHTML("beforeend", ` <span class="msg-edited" title="editada">(editado)</span>`);
     }
-  });
+  }));
 
   // After 300ms, assume initial load completed (no great other way without a query once)
-  onValue(messagesRef, () => {
+  unsubscribers.push(onValue(messagesRef, () => {
     if (!firstLoadDone) {
       firstLoadDone = true;
       scrollToBottomReliably();
     }
-  }, { onlyOnce: true });
+  }, { onlyOnce: true }));
 
   // Input handling
   input.addEventListener("input", () => {
@@ -441,10 +446,10 @@ function bootStickers() {
   // subscribe to stickers collection
   try {
     const q = fsQuery(collection(db, "stickers"), orderBy("createdAt", "desc"));
-    onSnapshot(q, (snap) => {
+    unsubscribers.push(onSnapshot(q, (snap) => {
       LOADED_STICKERS = [];
       snap.forEach(d => { const s = d.data(); s.id = d.id; LOADED_STICKERS.push(s); });
-    });
+  }));
   } catch (e) { console.warn("stickers subscribe:", e); }
 }
 
@@ -546,7 +551,7 @@ function bootPresence() {
   const myStatusRef = ref(rtdb, "presence/" + ME.uid);
   const presenceRef = ref(rtdb, "presence");
 
-  onValue(connectedRef, (snap) => {
+  unsubscribers.push(onValue(connectedRef, (snap) => {
     if (snap.val() === true) {
       onDisconnect(myStatusRef).remove().then(() => {
         set(myStatusRef, {
@@ -558,14 +563,14 @@ function bootPresence() {
         });
       });
     }
-  });
+  }));
 
-  onValue(presenceRef, (snap) => {
+  unsubscribers.push(onValue(presenceRef, (snap) => {
     const val = snap.val() || {};
     ONLINE_USERS = val;
     const n = Object.keys(val).length;
     onlineCount.textContent = n === 1 ? "1 online" : n + " online";
-  });
+  }));
 
   window.addEventListener("beforeunload", () => {
     try { remove(myStatusRef); } catch {}

@@ -20,19 +20,95 @@ const BODY_CLASS_BY_PAGE = {
   "profile.html": "page profile-page"
 };
 
-function currentPage() {
+function ensureLegacyRuntime() {
+  if (window.__alfaLegacyRuntime) return window.__alfaLegacyRuntime;
+
+  const originalAdd = EventTarget.prototype.addEventListener;
+  const originalRemove = EventTarget.prototype.removeEventListener;
+  const originalSetTimeout = window.setTimeout.bind(window);
+  const originalClearTimeout = window.clearTimeout.bind(window);
+  const originalSetInterval = window.setInterval.bind(window);
+  const originalClearInterval = window.clearInterval.bind(window);
+  let currentScope = null;
+
+  const runtime = {
+    start(label) {
+      const scope = { label, alive: true, listeners: [], timeouts: new Set(), intervals: new Set(), cleanups: new Set() };
+      currentScope = scope;
+      window.__alfaPageScope = {
+        addCleanup(fn) { if (typeof fn === "function" && scope.alive) scope.cleanups.add(fn); },
+        isActive() { return scope.alive && currentScope === scope; }
+      };
+      return scope;
+    },
+    cleanup(scope) {
+      if (!scope || !scope.alive) return;
+      scope.alive = false;
+      if (currentScope === scope) currentScope = null;
+      for (const cleanup of scope.cleanups) {
+        try { cleanup(); } catch (err) { console.warn("[Alfa React] cleanup failed:", err); }
+      }
+      scope.cleanups.clear();
+      for (const [target, type, listener, options] of scope.listeners) {
+        try { originalRemove.call(target, type, listener, options); } catch {}
+      }
+      scope.listeners.length = 0;
+      for (const id of scope.timeouts) originalClearTimeout(id);
+      for (const id of scope.intervals) originalClearInterval(id);
+      scope.timeouts.clear();
+      scope.intervals.clear();
+    }
+  };
+
+  EventTarget.prototype.addEventListener = function patchedAddEventListener(type, listener, options) {
+    if (currentScope?.alive && typeof listener !== "undefined") currentScope.listeners.push([this, type, listener, options]);
+    return originalAdd.call(this, type, listener, options);
+  };
+  window.setTimeout = function patchedSetTimeout(handler, timeout, ...args) {
+    const scope = currentScope?.alive ? currentScope : null;
+    const id = originalSetTimeout((...cbArgs) => {
+      if (scope) scope.timeouts.delete(id);
+      if (!scope || scope.alive) {
+        if (typeof handler === "function") handler(...cbArgs);
+      }
+    }, timeout, ...args);
+    if (scope) scope.timeouts.add(id);
+    return id;
+  };
+  window.clearTimeout = function patchedClearTimeout(id) { currentScope?.timeouts?.delete(id); return originalClearTimeout(id); };
+  window.setInterval = function patchedSetInterval(handler, timeout, ...args) {
+    const scope = currentScope?.alive ? currentScope : null;
+    const id = originalSetInterval((...cbArgs) => {
+      if (!scope || scope.alive) {
+        if (typeof handler === "function") handler(...cbArgs);
+      }
+    }, timeout, ...args);
+    if (scope) scope.intervals.add(id);
+    return id;
+  };
+  window.clearInterval = function patchedClearInterval(id) { currentScope?.intervals?.delete(id); return originalClearInterval(id); };
+  window.__alfaLegacyRuntime = runtime;
+  return runtime;
+}
+
+
+function currentRoute() {
   const basePath = new URL(import.meta.env.BASE_URL, window.location.origin).pathname;
   const pathname = window.location.pathname.startsWith(basePath)
     ? window.location.pathname.slice(basePath.length)
     : window.location.pathname.slice(1);
   const file = pathname.split("/").pop();
-  return file && file.endsWith(".html") ? file : "index.html";
+  return {
+    page: file && file.endsWith(".html") ? file : "index.html",
+    search: window.location.search,
+    hash: window.location.hash
+  };
 }
 
-function routeTo(page, search = "") {
+function routeTo(page, search = "", hash = "") {
   const basePath = new URL(import.meta.env.BASE_URL, window.location.origin).pathname;
   const pagePath = page === "index.html" ? "" : page;
-  const next = `${basePath}${pagePath}${search}`;
+  const next = `${basePath}${pagePath}${search}${hash}`;
   window.history.pushState({}, "", next);
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
@@ -47,15 +123,17 @@ function normalizeLocalHref(rawHref) {
   }
   if (url.origin !== window.location.origin) return null;
   const file = url.pathname.split("/").pop() || "index.html";
-  return legacyPages[file] ? { page: file, search: url.search } : null;
+  return legacyPages[file] ? { page: file, search: url.search, hash: url.hash } : null;
 }
 
-function LegacyPage({ page }) {
+function LegacyPage({ page, search }) {
   const legacy = legacyPages[page] || legacyPages["index.html"];
   const script = SCRIPT_BY_PAGE[page];
-  const templateKey = useMemo(() => `${page}:${window.location.search}`, [page]);
+  const templateKey = useMemo(() => `${page}:${search}`, [page, search]);
 
   useEffect(() => {
+    const runtime = ensureLegacyRuntime();
+    const scope = runtime.start(`${page}:${search}`);
     document.title = legacy.title || "Alfa Club";
     document.body.className = legacy.bodyClass || BODY_CLASS_BY_PAGE[page] || "page";
 
@@ -79,8 +157,9 @@ function LegacyPage({ page }) {
 
     return () => {
       cancelled = true;
+      runtime.cleanup(scope);
     };
-  }, [page, legacy.title, script]);
+  }, [page, search, legacy.title, script]);
 
   useEffect(() => {
     const onClick = (event) => {
@@ -89,7 +168,7 @@ function LegacyPage({ page }) {
       const local = normalizeLocalHref(anchor.getAttribute("href"));
       if (!local) return;
       event.preventDefault();
-      routeTo(local.page, local.search);
+      routeTo(local.page, local.search, local.hash);
     };
 
     document.addEventListener("click", onClick);
@@ -109,15 +188,15 @@ function LegacyPage({ page }) {
 }
 
 function App() {
-  const [page, setPage] = useState(currentPage);
+  const [route, setRoute] = useState(currentRoute);
 
   useEffect(() => {
-    const onPop = () => setPage(currentPage());
+    const onPop = () => setRoute(currentRoute());
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  return <LegacyPage page={page} />;
+  return <LegacyPage page={route.page} search={route.search} />;
 }
 
 async function runLoginController() {
@@ -303,4 +382,3 @@ async function runLoginController() {
 }
 
 createRoot(document.getElementById("root")).render(<App />);
-

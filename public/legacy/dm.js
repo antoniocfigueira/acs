@@ -62,6 +62,14 @@ let CURRENT_USER = null;
 let CURRENT_PROFILE = null;
 let currentThreadUnsub = null;
 let inboxUnsub = null;
+window.__alfaPageScope?.addCleanup(() => {
+  try { _presenceUnsub?.(); } catch {}
+  try { currentThreadUnsub?.(); } catch {}
+  try { inboxUnsub?.(); } catch {}
+  _presenceUnsub = null;
+  currentThreadUnsub = null;
+  inboxUnsub = null;
+});
 
 const params = new URLSearchParams(location.search);
 const openChatId = params.get("c");
@@ -618,3 +626,4 @@ async function openNewConvPicker() {
   // abort the animation by yanking the viewport for the keyboard.
   setTimeout(() => { try { searchEl.focus(); } catch {} }, 280);
 }
+
