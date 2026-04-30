@@ -30,7 +30,7 @@ body.chat-page {
 
 body.chat-page [data-react-page="chat.html"] {
   height: 100dvh;
-  padding-bottom: calc(62px + env(safe-area-inset-bottom));
+  padding-bottom: 0 !important;
   box-sizing: border-box;
 }
 
@@ -60,12 +60,26 @@ body.chat-page .chat-footer {
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom)) !important;
 }
 
+body.chat-page.keyboard-open .bottom-nav,
+body.dm-page.keyboard-open .bottom-nav {
+  display: none !important;
+}
+
+body.chat-page.keyboard-open .chat-footer,
+body.dm-page.keyboard-open .dm-footer {
+  padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+}
+
 body.chat-page .chat-input {
   margin-bottom: 0 !important;
 }
 
 .bottom-nav a.create::before {
   animation-delay: var(--fab-phase, 0s) !important;
+}
+
+.bottom-nav a.create svg {
+  stroke-width: 2.75px;
 }
 
 .role-badge-button {
@@ -220,4 +234,159 @@ body.dm-page.dm-thread-open .dm-input {
 .profile-pic .avatar-fallback {
   display: grid;
   place-items: center;
+}
+
+.tap-ripple {
+  position: fixed;
+  z-index: 2147483646;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(.18);
+  background: radial-gradient(circle, rgba(168, 85, 247, .32) 0%, rgba(236, 72, 153, .18) 38%, transparent 68%);
+  opacity: 0;
+  animation: tapRippleGlow 520ms ease-out forwards;
+  mix-blend-mode: screen;
+}
+
+@keyframes tapRippleGlow {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.16); }
+  18% { opacity: .9; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
+.profile-hero {
+  padding-top: 18px !important;
+  padding-bottom: 14px !important;
+}
+
+.profile-pic-wrap {
+  margin-bottom: 8px !important;
+}
+
+.profile-pic {
+  width: 86px !important;
+  height: 86px !important;
+}
+
+.profile-name {
+  font-size: 20px !important;
+  margin-top: 4px !important;
+}
+
+.profile-bio {
+  margin-top: 8px !important;
+  max-height: 54px;
+  overflow: hidden;
+}
+
+.profile-stats {
+  margin-top: 12px !important;
+}
+
+.profile-cta {
+  margin: 10px 12px 12px !important;
+  gap: 8px;
+}
+
+.app-header .app-header-left .icon-btn,
+.app-header .app-header-left .btn-icon {
+  width: 42px;
+  height: 42px;
+}
+
+.images-grid .posts-grid-empty {
+  grid-column: 1 / -1;
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.news-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.news-actions .btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  border-radius: 10px;
+}
+
+.drawer-version {
+  color: var(--muted-2);
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 8px 18px 4px;
+  text-align: left;
+}
+
+.shop-content-modern {
+  max-height: 65vh;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.shop-points-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(139, 92, 246, .28);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, .16), rgba(236, 72, 153, .08));
+}
+
+.shop-points-card strong {
+  font-size: 20px;
+}
+
+.shop-section-title {
+  margin: 16px 2px 8px;
+}
+
+.shop-item {
+  gap: 10px;
+}
+
+.shop-item.owned {
+  border-color: rgba(34, 197, 94, .25);
+}
+
+.shop-owned-badge {
+  color: #86efac;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.profile-unlock-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 8px;
+}
+
+.profile-unlock-option {
+  min-height: 42px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.04);
+  color: var(--text);
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.profile-unlock-option.active {
+  border-color: rgba(236,72,153,.7);
+  box-shadow: 0 0 0 1px rgba(236,72,153,.18), 0 10px 24px rgba(139,92,246,.18);
 }

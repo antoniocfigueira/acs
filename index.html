@@ -11,10 +11,105 @@
     <link rel="manifest" href="%BASE_URL%manifest.json" />
     <link rel="apple-touch-icon" href="%BASE_URL%icons/icon-192.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="%BASE_URL%icons/icon-192.png" />
+    <style>
+      html {
+        background: #07080d;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        background: #07080d;
+      }
+
+      #root {
+        min-height: 100dvh;
+        opacity: 0;
+        transition: opacity 320ms ease;
+      }
+
+      html.app-ready #root {
+        opacity: 1;
+      }
+
+      .app-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: grid;
+        place-items: center;
+        padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+        box-sizing: border-box;
+        background:
+          radial-gradient(circle at 50% 38%, rgba(255, 77, 109, 0.18), transparent 30%),
+          linear-gradient(180deg, #11121a 0%, #07080d 54%, #050509 100%);
+        color: #fff;
+        transition: opacity 380ms ease, transform 380ms ease, visibility 380ms ease;
+      }
+
+      .app-splash__content {
+        display: grid;
+        justify-items: center;
+        gap: 16px;
+        transform: translateY(-3vh);
+      }
+
+      .app-splash__logo {
+        width: 92px;
+        height: 92px;
+        border-radius: 28px;
+        display: grid;
+        place-items: center;
+        background:
+          linear-gradient(135deg, rgba(255,255,255,0.22), rgba(255,255,255,0) 42%),
+          linear-gradient(135deg, #ff3366 0%, #7c3cff 52%, #1fb6ff 100%);
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255,255,255,0.32);
+        overflow: hidden;
+      }
+
+      .app-splash__logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .app-splash__title {
+        font: 800 28px/1.1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: 0;
+      }
+
+      .app-splash.is-hiding {
+        opacity: 0;
+        transform: scale(1.015);
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      @media (max-width: 520px) {
+        .app-splash__logo {
+          width: 82px;
+          height: 82px;
+          border-radius: 25px;
+          font-size: 38px;
+        }
+
+        .app-splash__title {
+          font-size: 25px;
+        }
+      }
+    </style>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="%BASE_URL%legacy/recovery.js"></script>
   </head>
   <body>
+    <div id="appSplash" class="app-splash" aria-label="Alfa Club a carregar">
+      <div class="app-splash__content">
+        <div class="app-splash__logo" aria-hidden="true">
+          <img src="%BASE_URL%icons/icon-192.png" alt="" />
+        </div>
+        <div class="app-splash__title">Alfa Club</div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

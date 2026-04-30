@@ -73,7 +73,10 @@ function EditProfileModal({ profile, onClose }) {
   const [form, setForm] = useState({
     name: profile.name || "",
     bio: profile.bio || "",
-    photoURL: profile.photoURL || ""
+    photoURL: profile.photoURL || "",
+    nameColor: profile.nameColor || "",
+    nameStyle: profile.nameStyle || "",
+    profileTheme: profile.profileTheme || ""
   });
   const [busy, setBusy] = useState(false);
   const fileRef = useRef(null);
@@ -102,7 +105,10 @@ function EditProfileModal({ profile, onClose }) {
       await updateMyProfile({
         name: form.name.trim(),
         bio: form.bio.trim().slice(0, 180),
-        photoURL: form.photoURL.trim()
+        photoURL: form.photoURL.trim(),
+        nameColor: form.nameColor || null,
+        nameStyle: form.nameStyle || null,
+        profileTheme: form.profileTheme || null
       });
       toast("Perfil atualizado");
       onClose();
@@ -112,6 +118,9 @@ function EditProfileModal({ profile, onClose }) {
       setBusy(false);
     }
   };
+  const colorOptions = ["", ...(Array.isArray(profile.unlockedNameColors) ? profile.unlockedNameColors : [])];
+  const styleOptions = ["", ...(Array.isArray(profile.unlockedNameStyles) ? profile.unlockedNameStyles : [])];
+  const themeOptions = ["", ...(Array.isArray(profile.unlockedProfileThemes) ? profile.unlockedProfileThemes : [])];
 
   return (
     <SheetModal title="Editar perfil" onClose={onClose}>
@@ -124,6 +133,24 @@ function EditProfileModal({ profile, onClose }) {
         <input className="input" placeholder="Nome" value={form.name} onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))} style={{ padding: "11px 14px" }} />
         <textarea className="input" placeholder="Bio" value={form.bio} maxLength="180" rows="4" onChange={(event) => setForm((prev) => ({ ...prev, bio: event.target.value }))} style={{ padding: "11px 14px", fontFamily: "inherit", resize: "vertical" }} />
         <input className="input" placeholder="URL da foto" value={form.photoURL} onChange={(event) => setForm((prev) => ({ ...prev, photoURL: event.target.value }))} style={{ padding: "11px 14px" }} />
+        <div className="settings-row-hint">Personalizacao comprada</div>
+        <div className="profile-unlock-grid">
+          {colorOptions.map((value) => (
+            <button key={value || "default-color"} className={`profile-unlock-option ${form.nameColor === value ? "active" : ""}`} type="button" onClick={() => setForm((prev) => ({ ...prev, nameColor: value }))}>
+              <span style={value ? { color: value } : null}>{value ? "Cor" : "Padrao"}</span>
+            </button>
+          ))}
+          {styleOptions.map((value) => (
+            <button key={value || "default-style"} className={`profile-unlock-option ${form.nameStyle === value ? "active" : ""}`} type="button" onClick={() => setForm((prev) => ({ ...prev, nameStyle: value }))}>
+              <span className={value === "gold" ? "name-gold" : value === "grad" ? "name-grad-anim" : ""}>{value ? value : "Sem efeito"}</span>
+            </button>
+          ))}
+          {themeOptions.map((value) => (
+            <button key={value || "default-theme"} className={`profile-unlock-option ${form.profileTheme === value ? "active" : ""}`} type="button" onClick={() => setForm((prev) => ({ ...prev, profileTheme: value }))}>
+              {value ? value : "Sem tema"}
+            </button>
+          ))}
+        </div>
         <button className="btn-primary" type="button" onClick={save} disabled={busy}>{busy ? "A guardar" : "Guardar"}</button>
       </div>
     </SheetModal>

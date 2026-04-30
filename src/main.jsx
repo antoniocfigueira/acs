@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { onAuthStateChanged } from "firebase/auth";
 import "./styles.css";
 import { legacyPages } from "./legacy-pages.generated.js";
 import { ChatPage } from "./pages/ChatPage.jsx";
@@ -8,7 +9,13 @@ import { FeedPage } from "./pages/FeedPage.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
 import { NewsPage } from "./pages/NewsPage.jsx";
 import { ProfilePage } from "./pages/ProfilePage.jsx";
+import { ensureProfile } from "./lib/auth.js";
+import { auth } from "./lib/firebase.js";
 import { currentRoute, navigateHref, normalizeLocalHref, routeTo } from "./lib/navigation.js";
+
+const PROTECTED_PAGES = new Set(["index.html", "chat.html", "dm.html", "news.html", "profile.html"]);
+const SPLASH_MIN_VISIBLE_MS = 650;
+const splashStartedAt = performance.now();
 
 const SCRIPT_BY_PAGE = {
   "index.html": "feed.js",
@@ -100,6 +107,30 @@ function ensureLegacyRuntime() {
 
 window.__alfaNavigate = navigateHref;
 
+function revealInitialSplash() {
+  document.documentElement.classList.add("app-ready");
+  const splash = document.getElementById("appSplash");
+  if (!splash) return;
+  splash.classList.add("is-hiding");
+  window.setTimeout(() => splash.remove(), 430);
+}
+
+function installTapRipple() {
+  if (window.__alfaTapRippleInstalled) return;
+  window.__alfaTapRippleInstalled = true;
+  document.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    const target = event.target?.closest?.("button, a, input, textarea, select, [role='button'], .tap, [data-ripple]");
+    if (!target || target.disabled || target.closest(".app-splash")) return;
+    const ripple = document.createElement("span");
+    ripple.className = "tap-ripple";
+    ripple.style.left = `${event.clientX}px`;
+    ripple.style.top = `${event.clientY}px`;
+    document.body.appendChild(ripple);
+    ripple.addEventListener("animationend", () => ripple.remove(), { once: true });
+  }, { passive: true });
+}
+
 function LegacyPage({ page, search }) {
   const legacy = legacyPages[page] || legacyPages["index.html"];
   const script = SCRIPT_BY_PAGE[page];
@@ -163,8 +194,11 @@ function LegacyPage({ page, search }) {
 
 function App() {
   const [route, setRoute] = useState(currentRoute);
+  const [boot, setBoot] = useState({ ready: false, user: null, error: null });
+  const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
+    installTapRipple();
     try {
       const theme = localStorage.getItem("acs_theme_v1") || "dark";
       document.documentElement.setAttribute("data-theme", theme);
@@ -178,6 +212,55 @@ function App() {
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!alive) return;
+      if (!user) {
+        setBoot({ ready: true, user: null, error: null });
+        return;
+      }
+      try {
+        await ensureProfile(user);
+        if (alive) setBoot({ ready: true, user, error: null });
+      } catch (err) {
+        console.warn("[Alfa React] boot profile failed:", err);
+        if (alive) setBoot({ ready: true, user, error: err });
+      }
+    });
+    return () => {
+      alive = false;
+      unsub();
+    };
+  }, []);
+
+  const isProtectedPage = PROTECTED_PAGES.has(route.page);
+
+  useEffect(() => {
+    if (!boot.ready) return;
+    if (isProtectedPage && !boot.user) {
+      routeTo("login.html");
+    } else if (route.page === "login.html" && boot.user) {
+      routeTo("index.html");
+    }
+  }, [boot.ready, boot.user, isProtectedPage, route.page]);
+
+  useEffect(() => {
+    if (revealed || !boot.ready) return undefined;
+    if (isProtectedPage && !boot.user) return undefined;
+    if (route.page === "login.html" && boot.user) return undefined;
+
+    const elapsed = performance.now() - splashStartedAt;
+    const delay = Math.max(0, SPLASH_MIN_VISIBLE_MS - elapsed);
+    const timer = window.setTimeout(() => {
+      revealInitialSplash();
+      setRevealed(true);
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [boot.ready, boot.user, isProtectedPage, revealed, route.page]);
+
+  if (!revealed) return null;
 
   if (route.page === "index.html") return <FeedPage />;
   if (route.page === "login.html") return <LoginPage />;

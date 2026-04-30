@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   addDoc,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   increment,
   limit as fsLimit,
@@ -27,11 +29,11 @@ import { uploadMedia } from "../lib/upload.js";
 import { Avatar, Empty, Loading, RoleBadges, StyledName, toast } from "../lib/ui.jsx";
 
 const SHOP_ITEMS = [
-  { id: "color_cyan", name: "Cor Azul", sub: "Nome em azul", price: 15, preview: <span className="name-sample" style={{ color: "#22d3ee" }}>Nome</span>, apply: { nameColor: "#22d3ee" } },
-  { id: "color_pink", name: "Cor Rosa", sub: "Nome em rosa", price: 15, preview: <span className="name-sample" style={{ color: "#ec4899" }}>Nome</span>, apply: { nameColor: "#ec4899" } },
-  { id: "color_green", name: "Cor Verde", sub: "Nome em verde", price: 15, preview: <span className="name-sample" style={{ color: "#22c55e" }}>Nome</span>, apply: { nameColor: "#22c55e" } },
-  { id: "color_gold", name: "Dourado especial", sub: "Cor dourada com glow", price: 100, preview: <span className="name-sample name-gold">Nome</span>, apply: { nameStyle: "gold" } },
-  { id: "grad_anim", name: "Degrade animado", sub: "Nome com gradiente animado", price: 30, preview: <span className="name-sample name-grad-anim">Nome</span>, apply: { nameStyle: "grad" } },
+  { id: "color_cyan", unlockField: "unlockedNameColors", unlockValue: "#22d3ee", name: "Cor Azul", sub: "Nome em azul", price: 15, preview: <span className="name-sample" style={{ color: "#22d3ee" }}>Nome</span>, apply: { nameColor: "#22d3ee" } },
+  { id: "color_pink", unlockField: "unlockedNameColors", unlockValue: "#ec4899", name: "Cor Rosa", sub: "Nome em rosa", price: 15, preview: <span className="name-sample" style={{ color: "#ec4899" }}>Nome</span>, apply: { nameColor: "#ec4899" } },
+  { id: "color_green", unlockField: "unlockedNameColors", unlockValue: "#22c55e", name: "Cor Verde", sub: "Nome em verde", price: 15, preview: <span className="name-sample" style={{ color: "#22c55e" }}>Nome</span>, apply: { nameColor: "#22c55e" } },
+  { id: "color_gold", unlockField: "unlockedNameStyles", unlockValue: "gold", name: "Dourado especial", sub: "Cor dourada com glow", price: 100, preview: <span className="name-sample name-gold">Nome</span>, apply: { nameStyle: "gold" } },
+  { id: "grad_anim", unlockField: "unlockedNameStyles", unlockValue: "grad", name: "Degrade animado", sub: "Nome com gradiente animado", price: 30, preview: <span className="name-sample name-grad-anim">Nome</span>, apply: { nameStyle: "grad" } },
   { id: "reset_color", name: "Remover modificacoes", sub: "Voltar a cor padrao", price: 0, preview: <span className="name-sample">Nome</span>, apply: { nameColor: null, nameStyle: null } },
   { id: "change_user", name: "Mudar @username", sub: "Escolher um novo @", price: 50, preview: <span style={{ fontWeight: 700 }}>@</span>, action: "changeUsername" },
   { id: "timeout_user", name: "Timeout 24h", sub: "Silenciar um user 24h", price: 50, preview: <span style={{ fontWeight: 700, opacity: 0.7 }}>mute</span>, action: "timeoutUser" }
@@ -39,12 +41,12 @@ const SHOP_ITEMS = [
 
 const SHOP_PROFILE_THEMES = [
   { id: "ptheme_none", name: "Nenhum", sub: "Sem tema de perfil", price: 0, preview: <span className="pt-preview pt-preview-none">-</span>, apply: { profileTheme: null } },
-  { id: "ptheme_flames", name: "Chamas", sub: "Perfil em chamas animadas", price: 20, preview: <span className="pt-preview pt-preview-flames" />, apply: { profileTheme: "flames" } },
-  { id: "ptheme_aurora", name: "Aurora", sub: "Ondas de aurora boreal", price: 20, preview: <span className="pt-preview pt-preview-aurora" />, apply: { profileTheme: "aurora" } },
-  { id: "ptheme_neon", name: "Neon Grid", sub: "Grelha vaporwave animada", price: 25, preview: <span className="pt-preview pt-preview-neon" />, apply: { profileTheme: "neon" } },
-  { id: "ptheme_galaxy", name: "Galaxia", sub: "Estrelas e nebulosa", price: 25, preview: <span className="pt-preview pt-preview-galaxy" />, apply: { profileTheme: "galaxy" } },
-  { id: "ptheme_cyber", name: "Cyber HUD", sub: "Linhas neon em scan", price: 30, preview: <span className="pt-preview pt-preview-cyber" />, apply: { profileTheme: "cyber" } },
-  { id: "ptheme_sakura", name: "Sakura", sub: "Petalas a cair", price: 30, preview: <span className="pt-preview pt-preview-sakura" />, apply: { profileTheme: "sakura" } }
+  { id: "ptheme_flames", unlockField: "unlockedProfileThemes", unlockValue: "flames", name: "Chamas", sub: "Perfil em chamas animadas", price: 20, preview: <span className="pt-preview pt-preview-flames" />, apply: { profileTheme: "flames" } },
+  { id: "ptheme_aurora", unlockField: "unlockedProfileThemes", unlockValue: "aurora", name: "Aurora", sub: "Ondas de aurora boreal", price: 20, preview: <span className="pt-preview pt-preview-aurora" />, apply: { profileTheme: "aurora" } },
+  { id: "ptheme_neon", unlockField: "unlockedProfileThemes", unlockValue: "neon", name: "Neon Grid", sub: "Grelha vaporwave animada", price: 25, preview: <span className="pt-preview pt-preview-neon" />, apply: { profileTheme: "neon" } },
+  { id: "ptheme_galaxy", unlockField: "unlockedProfileThemes", unlockValue: "galaxy", name: "Galaxia", sub: "Estrelas e nebulosa", price: 25, preview: <span className="pt-preview pt-preview-galaxy" />, apply: { profileTheme: "galaxy" } },
+  { id: "ptheme_cyber", unlockField: "unlockedProfileThemes", unlockValue: "cyber", name: "Cyber HUD", sub: "Linhas neon em scan", price: 30, preview: <span className="pt-preview pt-preview-cyber" />, apply: { profileTheme: "cyber" } },
+  { id: "ptheme_sakura", unlockField: "unlockedProfileThemes", unlockValue: "sakura", name: "Sakura", sub: "Petalas a cair", price: 30, preview: <span className="pt-preview pt-preview-sakura" />, apply: { profileTheme: "sakura" } }
 ];
 
 const APP_THEMES = [
@@ -114,6 +116,27 @@ function useStories() {
     });
   }, []);
   return stories;
+}
+
+function useRoles(enabled = true) {
+  const [roles, setRoles] = useState([]);
+  useEffect(() => {
+    if (!enabled) {
+      setRoles([]);
+      return undefined;
+    }
+    const q = query(collection(db, "roles"), orderBy("name", "asc"));
+    return onSnapshot(q, (snap) => {
+      setRoles(snap.docs.map((item) => ({ id: item.id, ...item.data() })));
+    }, () => setRoles([]));
+  }, [enabled]);
+  return roles;
+}
+
+function itemIsUnlocked(profile, item) {
+  if (item.price === 0) return true;
+  if (!item.unlockField || item.unlockValue === undefined) return false;
+  return Array.isArray(profile?.[item.unlockField]) && profile[item.unlockField].includes(item.unlockValue);
 }
 
 function Composer({ user, profile }) {
@@ -469,7 +492,9 @@ function ShopModal({ user, profile, onClose }) {
   const [actionItem, setActionItem] = useState(null);
   const [actionValue, setActionValue] = useState("");
   const buy = async (item, rawValue = "") => {
-    if ((profile.points || 0) < item.price) {
+    const unlocked = itemIsUnlocked(profile, item);
+    const cost = unlocked ? 0 : item.price;
+    if ((profile.points || 0) < cost) {
       toast("Pontos insuficientes", "error");
       return;
     }
@@ -499,9 +524,12 @@ function ShopModal({ user, profile, onClose }) {
         const meRef = doc(db, "users", user.uid);
         const snap = await tx.get(meRef);
         const points = snap.data()?.points || 0;
-        if (points < item.price) throw new Error("Pontos insuficientes");
-        const update = { points: increment(-item.price) };
+        const alreadyUnlocked = itemIsUnlocked(snap.data(), item);
+        const txCost = alreadyUnlocked ? 0 : item.price;
+        if (points < txCost) throw new Error("Pontos insuficientes");
+        const update = txCost > 0 ? { points: increment(-txCost) } : {};
         if (item.apply) Object.assign(update, item.apply);
+        if (item.unlockField && item.unlockValue !== undefined && !alreadyUnlocked) update[item.unlockField] = arrayUnion(item.unlockValue);
         if (extra.username) update.username = extra.username;
         tx.update(meRef, update);
         if (extra.targetUid) tx.update(doc(db, "users", extra.targetUid), { timeoutUntil: Date.now() + 24 * 60 * 60 * 1000 });
@@ -512,7 +540,7 @@ function ShopModal({ user, profile, onClose }) {
       if (item.apply && Object.prototype.hasOwnProperty.call(item.apply, "profileTheme")) profileUpdate.profileTheme = item.apply.profileTheme;
       if (extra.username) profileUpdate.username = extra.username;
       if (Object.keys(profileUpdate).length) await updateMyProfile(profileUpdate);
-      toast(item.price === 0 ? "Aplicado" : "Comprado", "success");
+      toast(cost === 0 ? "Aplicado" : "Comprado para sempre", "success");
       setActionItem(null);
       setActionValue("");
     } catch (err) {
@@ -815,6 +843,10 @@ function FeedMenu({ onClose, onSearch, onRanking, onShop, onBugs, onArchive, onS
         </div>
 
         <div style={{ flex: 1 }} />
+        <div className="drawer-version">
+          <div>Beta 1.1</div>
+          {profile?.isAdmin ? <div>admin access</div> : profile?.role === "mod" || profile?.isMod ? <div>moderator access</div> : null}
+        </div>
         <div className="drawer-section" style={{ borderTop: "1px solid var(--border)", padding: "12px 18px" }}>
           <button className="drawer-item w-full" type="button" style={{ color: "#fca5a5" }} onClick={async () => { if (confirm("Sair da conta?")) await logout(); }}>
             <DrawerIcon><LogOut size={18} /></DrawerIcon>
@@ -1002,10 +1034,35 @@ function AdminUserEditor({ item, onClose }) {
 }
 
 function AdminRolesEditor({ item, onClose }) {
-  const [roles, setRoles] = useState(Array.isArray(item.roles) ? item.roles.join(", ") : "");
+  const allRoles = useRoles(true);
+  const [selected, setSelected] = useState(() => new Set(Array.isArray(item.roles) ? item.roles : []));
+  const [newRoleName, setNewRoleName] = useState("");
+  const [newRoleColor, setNewRoleColor] = useState("#8b5cf6");
+  const toggle = (roleId) => setSelected((prev) => {
+    const next = new Set(prev);
+    if (next.has(roleId)) next.delete(roleId);
+    else next.add(roleId);
+    return next;
+  });
+  const createRole = async () => {
+    const name = newRoleName.trim();
+    if (!name) return;
+    try {
+      const created = await addDoc(collection(db, "roles"), {
+        name,
+        color: newRoleColor,
+        createdAt: serverTimestamp()
+      });
+      setSelected((prev) => new Set([...prev, created.id]));
+      setNewRoleName("");
+      toast("Role criado.", "success");
+    } catch (err) {
+      toast(`Erro: ${err.message}`, "error");
+    }
+  };
   const save = async () => {
     try {
-      await updateDoc(doc(db, "users", item.uid), { roles: roles.split(",").map((role) => role.trim()).filter(Boolean) });
+      await updateDoc(doc(db, "users", item.uid), { roles: [...selected] });
       toast("Roles guardadas", "success");
       onClose();
     } catch (err) {
@@ -1015,8 +1072,22 @@ function AdminRolesEditor({ item, onClose }) {
   return (
     <SheetModal title={`Roles de @${item.username || item.name || "user"}`} onClose={onClose}>
       <div style={{ display: "grid", gap: 10 }}>
-        <div style={{ fontSize: 13, color: "var(--muted)" }}>Usa IDs separados por virgula. Estes IDs tambem controlam a visibilidade das seccoes do arquivo.</div>
-        <input className="input" placeholder="ex: vip, equipa, beta" value={roles} onChange={(event) => setRoles(event.target.value)} />
+        <div style={{ fontSize: 13, color: "var(--muted)" }}>Seleciona as roles invisiveis que controlam o arquivo, como na versao legacy.</div>
+        <div className="role-picker-list">
+          {allRoles.map((role) => (
+            <label className="role-pick" key={role.id}>
+              <input type="checkbox" checked={selected.has(role.id)} onChange={() => toggle(role.id)} />
+              <span className="role-chip" style={{ background: role.color || "#8b5cf6" }} />
+              <span>{role.name || role.id}</span>
+            </label>
+          ))}
+          {!allRoles.length ? <div className="empty" style={{ padding: 10 }}>Sem roles ainda.</div> : null}
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input className="input" placeholder="Nova role" value={newRoleName} onChange={(event) => setNewRoleName(event.target.value)} />
+          <input type="color" value={newRoleColor} onChange={(event) => setNewRoleColor(event.target.value)} style={{ width: 42, borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-1)" }} />
+          <button className="btn-ghost tap" type="button" onClick={createRole}>Criar</button>
+        </div>
         <button className="btn-primary" type="button" onClick={save}>Guardar roles</button>
       </div>
     </SheetModal>
@@ -1029,6 +1100,8 @@ function ArchiveModal({ user, profile, onClose, onBack }) {
   const [openSection, setOpenSection] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editor, setEditor] = useState(null);
+  const allRoles = useRoles(!!profile?.isAdmin);
+  const rolesById = useMemo(() => new Map(allRoles.map((role) => [role.id, role])), [allRoles]);
 
   useEffect(() => {
     const q = query(collection(db, "archiveSections"), orderBy("order", "asc"));
@@ -1167,7 +1240,7 @@ function ArchiveModal({ user, profile, onClose, onBack }) {
                   </span>
                   {Array.isArray(section.requiredRoles) && section.requiredRoles.length ? (
                     <span className="archive-section-roles">
-                      {section.requiredRoles.map((role) => <span key={role} className="role-chip-mini" title={role} />)}
+                      {section.requiredRoles.map((role) => <span key={role} className="role-chip-mini" title={rolesById.get(role)?.name || role} style={{ background: rolesById.get(role)?.color || undefined }} />)}
                     </span>
                   ) : null}
                   <span className="archive-section-chev">&gt;</span>
@@ -1207,13 +1280,13 @@ function ArchiveModal({ user, profile, onClose, onBack }) {
           </div>
         )}
       </div>}
-      {editor?.type === "section" ? <ArchiveSectionEditor item={editor.item} sectionsCount={sections.length} isAdmin={!!profile?.isAdmin} onClose={() => setEditor(null)} onSave={saveSection} /> : null}
+      {editor?.type === "section" ? <ArchiveSectionEditor item={editor.item} sectionsCount={sections.length} isAdmin={!!profile?.isAdmin} roles={allRoles} onClose={() => setEditor(null)} onSave={saveSection} /> : null}
       {editor?.type === "entry" ? <ArchiveEntryEditor item={editor.item} entriesCount={entries.length} onClose={() => setEditor(null)} onSave={saveEntry} /> : null}
     </SideDrawer>
   );
 }
 
-function ArchiveSectionEditor({ item, sectionsCount, isAdmin, onClose, onSave }) {
+function ArchiveSectionEditor({ item, sectionsCount, isAdmin, roles = [], onClose, onSave }) {
   const [values, setValues] = useState({
     name: item?.name || "",
     description: item?.description || "",
@@ -1222,6 +1295,13 @@ function ArchiveSectionEditor({ item, sectionsCount, isAdmin, onClose, onSave })
     requiredRoles: Array.isArray(item?.requiredRoles) ? item.requiredRoles.join(", ") : ""
   });
   const set = (key, value) => setValues((prev) => ({ ...prev, [key]: value }));
+  const selectedRoles = new Set(values.requiredRoles.split(",").map((role) => role.trim()).filter(Boolean));
+  const toggleRole = (roleId) => {
+    const next = new Set(selectedRoles);
+    if (next.has(roleId)) next.delete(roleId);
+    else next.add(roleId);
+    set("requiredRoles", [...next].join(", "));
+  };
   return (
     <SheetModal title={item ? "Editar seccao" : "Nova seccao"} onClose={onClose}>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -1229,7 +1309,18 @@ function ArchiveSectionEditor({ item, sectionsCount, isAdmin, onClose, onSave })
         <input className="input" placeholder="Descricao" value={values.description} onChange={(event) => set("description", event.target.value)} style={{ padding: 11 }} />
         <input className="input" placeholder="Icone" value={values.icon} onChange={(event) => set("icon", event.target.value)} style={{ padding: 11 }} />
         <input className="input" type="number" placeholder="Ordem" value={values.order} onChange={(event) => set("order", event.target.value)} style={{ padding: 11 }} />
-        {isAdmin ? <input className="input" placeholder="Roles permitidas, separadas por virgula" value={values.requiredRoles} onChange={(event) => set("requiredRoles", event.target.value)} style={{ padding: 11 }} /> : null}
+        {isAdmin ? (
+          <div className="role-picker-list">
+            {roles.map((role) => (
+              <label className="role-pick" key={role.id}>
+                <input type="checkbox" checked={selectedRoles.has(role.id)} onChange={() => toggleRole(role.id)} />
+                <span className="role-chip" style={{ background: role.color || "#8b5cf6" }} />
+                <span>{role.name || role.id}</span>
+              </label>
+            ))}
+            {!roles.length ? <div className="empty" style={{ padding: 10 }}>Sem roles definidas. Cria-as no God mode.</div> : null}
+          </div>
+        ) : null}
         <button className="btn-primary" type="button" onClick={() => onSave(values)}>Guardar</button>
       </div>
     </SheetModal>

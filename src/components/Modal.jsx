@@ -48,6 +48,7 @@ export function SheetModal({ title, children, onClose }) {
 }
 
 export function SideDrawer({ children, onClose }) {
+  const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const close = () => {
     if (closing) return;
@@ -58,7 +59,9 @@ export function SideDrawer({ children, onClose }) {
   useEffect(() => {
     document.body.classList.add("drawer-open");
     document.documentElement.classList.add("drawer-open");
+    const frame = requestAnimationFrame(() => setOpen(true));
     return () => {
+      cancelAnimationFrame(frame);
       document.body.classList.remove("drawer-open");
       document.documentElement.classList.remove("drawer-open");
     };
@@ -66,8 +69,8 @@ export function SideDrawer({ children, onClose }) {
 
   const node = (
     <>
-      <div className={`drawer-backdrop ${closing ? "" : "open"}`} onClick={close} />
-      <aside id="drawer" className={`drawer ${closing ? "" : "open"}`} role="dialog" aria-modal="true">
+      <div className={`drawer-backdrop ${open && !closing ? "open" : ""}`} onClick={close} />
+      <aside id="drawer" className={`drawer ${open && !closing ? "open" : ""}`} role="dialog" aria-modal="true">
         {typeof children === "function" ? children({ close }) : children}
       </aside>
     </>

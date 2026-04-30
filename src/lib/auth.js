@@ -219,7 +219,8 @@ export async function updateMyProfile(data) {
   await Promise.all([
     propagateCollectionAuthor("posts", user.uid, historyFields),
     propagateCollectionAuthor("stories", user.uid, historyFields),
-    propagateCommentAuthor(user.uid, historyFields)
+    propagateCommentAuthor(user.uid, historyFields),
+    propagateGlobalChatAuthor(user.uid, historyFields)
   ]);
 }
 
@@ -244,6 +245,33 @@ async function propagateCommentAuthor(uid, fields) {
     await batch.commit();
   } catch (err) {
     console.warn("comments history update skipped:", err?.message || err);
+  }
+}
+
+async function propagateGlobalChatAuthor(uid, fields) {
+  try {
+    const fieldMap = {
+      authorName: "name",
+      authorUsername: "username",
+      authorPhoto: "photoURL",
+      authorIsAdmin: "isAdmin",
+      authorRole: "role",
+      authorNameColor: "nameColor",
+      authorNameStyle: "nameStyle"
+    };
+    const updates = {};
+    const snap = await rtGet(rtQuery(rtRef(rtdb, "chat/messages"), orderByChild("uid"), equalTo(uid)));
+    if (!snap.exists()) return;
+    snap.forEach((child) => {
+      for (const [source, target] of Object.entries(fieldMap)) {
+        if (Object.prototype.hasOwnProperty.call(fields, source)) {
+          updates[`${child.key}/${target}`] = fields[source];
+        }
+      }
+    });
+    if (Object.keys(updates).length) await rtUpdate(rtRef(rtdb, "chat/messages"), updates);
+  } catch (err) {
+    console.warn("global chat history update skipped:", err?.message || err);
   }
 }
 

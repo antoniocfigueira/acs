@@ -754,19 +754,26 @@ export function ChatPage() {
 
   const onlineUsers = useMemo(() => Object.entries(online || {}), [online]);
 
-  useEffect(() => {
+  const scrollToLatest = () => {
     const node = wrapRef.current;
     if (!node) return;
-    const nearBottom = node.scrollHeight - node.scrollTop - node.clientHeight < 160;
-    if (nearBottom) requestAnimationFrame(() => (node.scrollTop = node.scrollHeight + 9999));
+    node.scrollTop = node.scrollHeight + 9999;
+  };
+
+  useEffect(() => {
+    const node = wrapRef.current;
+    if (!node) return undefined;
+    const nearBottom = node.scrollHeight - node.scrollTop - node.clientHeight < 220;
+    if (!nearBottom && didInitialScroll.current) return undefined;
+    const timers = [0, 60, 180, 420].map((delay) => window.setTimeout(scrollToLatest, delay));
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [messages.length]);
 
   useEffect(() => {
     if (loading || didInitialScroll.current || !messages.length) return;
     didInitialScroll.current = true;
-    requestAnimationFrame(() => {
-      if (wrapRef.current) wrapRef.current.scrollTop = wrapRef.current.scrollHeight + 9999;
-    });
+    const timers = [0, 80, 240, 600].map((delay) => window.setTimeout(scrollToLatest, delay));
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [loading, messages.length]);
 
   const sendMessage = async () => {
@@ -787,9 +794,7 @@ export function ChatPage() {
         at: Date.now()
       });
       inputRef.current?.focus();
-      requestAnimationFrame(() => {
-        if (wrapRef.current) wrapRef.current.scrollTop = wrapRef.current.scrollHeight + 9999;
-      });
+      requestAnimationFrame(scrollToLatest);
     } catch (err) {
       toast(`Erro: ${err.message}`, "error");
       setText(clean);

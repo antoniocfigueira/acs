@@ -16,8 +16,13 @@ export function useKeyboardViewport({ enabled = true, scrollRef } = {}) {
       const kbHeight = Math.max(0, layoutH - visualH - offsetTop);
       const keyboardOpen = isMobileLike() && kbHeight > 0;
       document.body.classList.toggle("keyboard-open", keyboardOpen);
-      document.body.style.height = `${visualH}px`;
-      document.body.style.minHeight = `${visualH}px`;
+      if (keyboardOpen) {
+        document.body.style.height = `${visualH}px`;
+        document.body.style.minHeight = `${visualH}px`;
+      } else {
+        document.body.style.height = "";
+        document.body.style.minHeight = "";
+      }
       if (offsetTop !== 0) window.scrollTo(0, 0);
     };
 
