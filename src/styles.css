@@ -1,0 +1,11 @@
+@import "/legacy/style.css";
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+[data-react-page] {
+  min-height: 100dvh;
+}
