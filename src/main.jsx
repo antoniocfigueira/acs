@@ -2,6 +2,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 import { legacyPages } from "./legacy-pages.generated.js";
+import { ChatPage } from "./pages/ChatPage.jsx";
+import { DMPage } from "./pages/DMPage.jsx";
+import { FeedPage } from "./pages/FeedPage.jsx";
+import { LoginPage } from "./pages/LoginPage.jsx";
+import { NewsPage } from "./pages/NewsPage.jsx";
+import { ProfilePage } from "./pages/ProfilePage.jsx";
+import { currentRoute, navigateHref, normalizeLocalHref, routeTo } from "./lib/navigation.js";
 
 const SCRIPT_BY_PAGE = {
   "index.html": "feed.js",
@@ -91,49 +98,7 @@ function ensureLegacyRuntime() {
   return runtime;
 }
 
-
-function currentRoute() {
-  const basePath = new URL(import.meta.env.BASE_URL, window.location.origin).pathname;
-  const pathname = window.location.pathname.startsWith(basePath)
-    ? window.location.pathname.slice(basePath.length)
-    : window.location.pathname.slice(1);
-  const file = pathname.split("/").pop();
-  return {
-    page: file && file.endsWith(".html") ? file : "index.html",
-    search: window.location.search,
-    hash: window.location.hash
-  };
-}
-
-function routeTo(page, search = "", hash = "") {
-  const basePath = new URL(import.meta.env.BASE_URL, window.location.origin).pathname;
-  const pagePath = page === "index.html" ? "" : page;
-  const next = `${basePath}${pagePath}${search}${hash}`;
-  window.history.pushState({}, "", next);
-  window.dispatchEvent(new PopStateEvent("popstate"));
-}
-
-function navigateHref(rawHref) {
-  const local = normalizeLocalHref(rawHref);
-  if (!local) return false;
-  routeTo(local.page, local.search, local.hash);
-  return true;
-}
-
 window.__alfaNavigate = navigateHref;
-
-function normalizeLocalHref(rawHref) {
-  if (!rawHref || rawHref === "#") return null;
-  let url;
-  try {
-    url = new URL(rawHref, window.location.href);
-  } catch {
-    return null;
-  }
-  if (url.origin !== window.location.origin) return null;
-  const file = url.pathname.split("/").pop() || "index.html";
-  return legacyPages[file] ? { page: file, search: url.search, hash: url.hash } : null;
-}
 
 function LegacyPage({ page, search }) {
   const legacy = legacyPages[page] || legacyPages["index.html"];
@@ -205,6 +170,12 @@ function App() {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
+  if (route.page === "index.html") return <FeedPage />;
+  if (route.page === "login.html") return <LoginPage />;
+  if (route.page === "chat.html") return <ChatPage search={route.search} />;
+  if (route.page === "dm.html") return <DMPage search={route.search} />;
+  if (route.page === "news.html") return <NewsPage />;
+  if (route.page === "profile.html") return <ProfilePage search={route.search} />;
   return <LegacyPage page={route.page} search={route.search} />;
 }
 
