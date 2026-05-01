@@ -108,7 +108,8 @@ function usePosts(user, profile, filter, refreshKey = 0) {
 function useStories(refreshKey = 0) {
   const [stories, setStories] = useState([]);
   useEffect(() => {
-    return onSnapshot(collection(db, "stories"), (snap) => {
+    const q = query(collection(db, "stories"), orderBy("createdAt", "desc"), fsLimit(50));
+    return onSnapshot(q, (snap) => {
       const now = Date.now();
       const rows = [];
       snap.forEach((item) => {
@@ -117,12 +118,7 @@ function useStories(refreshKey = 0) {
         if (exp && exp < now) return;
         rows.push(story);
       });
-      rows.sort((a, b) => {
-        const at = a.createdAt?.toMillis ? a.createdAt.toMillis() : Number(a.createdAt || 0);
-        const bt = b.createdAt?.toMillis ? b.createdAt.toMillis() : Number(b.createdAt || 0);
-        return at - bt;
-      });
-      setStories(rows.slice(-50));
+      setStories(rows);
     }, (err) => {
       console.warn("stories:", err?.message || err);
       setStories([]);
@@ -355,7 +351,8 @@ function Stories({ stories, user, profile }) {
       rows.push(story);
       map.set(story.uid, rows);
     }
-    return [...map.values()];
+    const timestamp = (story) => story.createdAt?.toMillis ? story.createdAt.toMillis() : Number(story.createdAt || 0);
+    return [...map.values()].map((items) => [...items].sort((a, b) => timestamp(a) - timestamp(b)));
   }, [stories]);
 
   const createStory = async (file, storyText = "") => {
@@ -477,10 +474,12 @@ function StoryViewer({ stories, user, onClose }) {
           </span>
         ))}
       </div>
-      <button className="icon-btn tap story-viewer-close" type="button" aria-label="Fechar" onClick={(event) => { event.stopPropagation(); onClose(); }}>
-        <X size={22} />
-      </button>
-      {story.uid === user.uid ? <button className="story-viewer-delete tap" type="button" onClick={(event) => { event.stopPropagation(); deleteStory(); }}>Apagar</button> : null}
+      <div className="story-top-actions-react" onClick={(event) => event.stopPropagation()}>
+        {story.uid === user.uid ? <button className="story-viewer-delete tap" type="button" onClick={deleteStory}>Apagar</button> : null}
+        <button className="icon-btn tap story-viewer-close" type="button" aria-label="Fechar" onClick={onClose}>
+          <X size={22} />
+        </button>
+      </div>
       {story.mediaURL ? (
         story.mediaType === "video" ? <video src={story.mediaURL} controls autoPlay style={{ maxWidth: "100vw", maxHeight: "86vh" }} /> : <img src={story.mediaURL} alt="" style={{ maxWidth: "100vw", maxHeight: "86vh", objectFit: "contain" }} />
       ) : (
@@ -494,6 +493,11 @@ function StoryViewer({ stories, user, onClose }) {
 function SearchModal({ onClose }) {
   const [q, setQ] = useState("");
   const [users, setUsers] = useState([]);
+  const inputRef = useRef(null);
+  useEffect(() => {
+    const timer = window.setTimeout(() => inputRef.current?.focus(), 180);
+    return () => window.clearTimeout(timer);
+  }, []);
   useEffect(() => {
     let alive = true;
     const run = async () => {
@@ -516,19 +520,41 @@ function SearchModal({ onClose }) {
       clearTimeout(t);
     };
   }, [q]);
+  const clean = q.trim();
   return (
     <SheetModal title="Pesquisar" onClose={onClose}>
-      <input className="input" placeholder="Nome ou @username" value={q} onChange={(event) => setQ(event.target.value)} style={{ width: "100%", padding: "11px 14px" }} />
-      <div style={{ marginTop: 10, maxHeight: "60vh", overflowY: "auto" }}>
-        {users.map((item) => (
-          <button key={item.uid} className="user-list-item" type="button" onClick={() => { onClose(); routeTo("profile.html", `?u=${encodeURIComponent(item.username || "")}`); }}>
-            <div className="user-list-avatar"><Avatar user={item} size={42} /></div>
-            <div className="user-list-meta">
-              <div className="user-list-name"><StyledName user={item} /><RoleBadges user={item} /></div>
-              <div className="user-list-user">@{item.username || ""}</div>
+      <div className="search-modal">
+        <div className="search-field-wrap">
+          <Search size={19} />
+          <input ref={inputRef} className="search-input" placeholder="Nome ou @username" value={q} onChange={(event) => setQ(event.target.value)} />
+          {q ? (
+            <button className="search-clear-btn" type="button" aria-label="Limpar pesquisa" onClick={() => setQ("")}>
+              <X size={18} />
+            </button>
+          ) : null}
+        </div>
+        <div className="search-results">
+          {!clean ? (
+            <div className="search-empty-state">
+              <Search size={22} />
+              <span>Procura por nome ou @username.</span>
             </div>
-          </button>
-        ))}
+          ) : null}
+          {clean && !users.length ? (
+            <div className="search-empty-state">
+              <span>Nenhum perfil encontrado.</span>
+            </div>
+          ) : null}
+          {users.map((item) => (
+            <button key={item.uid} className="user-list-item search-user-row" type="button" onClick={() => { onClose(); routeTo("profile.html", `?u=${encodeURIComponent(item.username || "")}`); }}>
+              <div className="user-list-avatar"><Avatar user={item} size={48} /></div>
+              <div className="user-list-meta">
+                <div className="user-list-name"><StyledName user={item} /><RoleBadges user={item} /></div>
+                <div className="user-list-user">@{item.username || ""}</div>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     </SheetModal>
   );

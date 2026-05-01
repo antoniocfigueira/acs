@@ -22,6 +22,7 @@ import { auth, db, rtdb } from "./firebase.js";
 import { routeTo } from "./navigation.js";
 
 let registering = false;
+const repairedHistorySignatures = new Set();
 
 function isRegistering() {
   if (registering) return true;
@@ -177,7 +178,9 @@ export function useAuthProfile({ requireUser = false, redirectToLogin = true } =
         await ensureProfile(user);
         profileUnsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
           if (!alive) return;
-          setState({ loading: false, user, profile: snap.exists() ? snap.data() : null, error: null });
+          const profile = snap.exists() ? snap.data() : null;
+          setState({ loading: false, user, profile, error: null });
+          scheduleAuthorHistoryRepair(user.uid, profile);
         }, (err) => {
           if (alive) setState({ loading: false, user, profile: null, error: err });
         });
@@ -195,6 +198,37 @@ export function useAuthProfile({ requireUser = false, redirectToLogin = true } =
   return state;
 }
 
+function authorFieldsFromProfile(profile) {
+  if (!profile) return {};
+  return {
+    authorName: profile.name || "",
+    authorPhoto: profile.photoURL || "",
+    authorUsername: profile.username || "",
+    authorNameColor: profile.nameColor || "",
+    authorNameStyle: profile.nameStyle || "",
+    authorIsAdmin: !!profile.isAdmin,
+    authorIsMod: !!profile.isMod,
+    authorRole: profile.role || "user"
+  };
+}
+
+function authorHistorySignature(uid, profile) {
+  const fields = authorFieldsFromProfile(profile);
+  return `${uid}:${JSON.stringify(fields)}`;
+}
+
+function scheduleAuthorHistoryRepair(uid, profile) {
+  if (!uid || !profile) return;
+  const signature = authorHistorySignature(uid, profile);
+  if (repairedHistorySignatures.has(signature)) return;
+  repairedHistorySignatures.add(signature);
+  window.setTimeout(() => {
+    propagateAuthorHistory(uid, authorFieldsFromProfile(profile)).catch((err) => {
+      console.warn("author history repair skipped:", err?.message || err);
+    });
+  }, 1200);
+}
+
 export async function updateMyProfile(data) {
   const user = auth.currentUser;
   if (!user) throw new Error("Not signed in");
@@ -205,6 +239,13 @@ export async function updateMyProfile(data) {
     } catch {}
   }
 
+  const historyFields = historyFieldsFromUpdate(data);
+  if (!Object.keys(historyFields).length) return;
+
+  await propagateAuthorHistory(user.uid, historyFields);
+}
+
+function historyFieldsFromUpdate(data) {
   const historyFields = {};
   if (data.name !== undefined) historyFields.authorName = data.name;
   if (data.photoURL !== undefined) historyFields.authorPhoto = data.photoURL || "";
@@ -214,23 +255,33 @@ export async function updateMyProfile(data) {
   if (data.isAdmin !== undefined) historyFields.authorIsAdmin = !!data.isAdmin;
   if (data.isMod !== undefined) historyFields.authorIsMod = !!data.isMod;
   if (data.role !== undefined) historyFields.authorRole = data.role || "user";
-  if (!Object.keys(historyFields).length) return;
+  return historyFields;
+}
 
+async function propagateAuthorHistory(uid, historyFields) {
+  if (!uid || !Object.keys(historyFields || {}).length) return;
   await Promise.all([
-    propagateCollectionAuthor("posts", user.uid, historyFields),
-    propagateCollectionAuthor("stories", user.uid, historyFields),
-    propagateCommentAuthor(user.uid, historyFields),
-    propagateGlobalChatAuthor(user.uid, historyFields)
+    propagateCollectionAuthor("posts", uid, historyFields),
+    propagateCollectionAuthor("stories", uid, historyFields),
+    propagateCommentAuthor(uid, historyFields),
+    propagateGlobalChatAuthor(uid, historyFields)
   ]);
+}
+
+async function commitInChunks(docs, fields) {
+  const rows = Array.from(docs || []);
+  for (let i = 0; i < rows.length; i += 450) {
+    const batch = writeBatch(db);
+    rows.slice(i, i + 450).forEach((item) => batch.update(item.ref, fields));
+    await batch.commit();
+  }
 }
 
 async function propagateCollectionAuthor(name, uid, fields) {
   try {
     const snap = await getDocs(query(collection(db, name), where("uid", "==", uid)));
     if (snap.empty) return;
-    const batch = writeBatch(db);
-    snap.forEach((item) => batch.update(item.ref, fields));
-    await batch.commit();
+    await commitInChunks(snap.docs, fields);
   } catch (err) {
     console.warn(`${name} history update skipped:`, err?.message || err);
   }
@@ -240,9 +291,7 @@ async function propagateCommentAuthor(uid, fields) {
   try {
     const snap = await getDocs(query(collectionGroup(db, "comments"), where("uid", "==", uid)));
     if (snap.empty) return;
-    const batch = writeBatch(db);
-    snap.forEach((item) => batch.update(item.ref, fields));
-    await batch.commit();
+    await commitInChunks(snap.docs, fields);
   } catch (err) {
     console.warn("comments history update skipped:", err?.message || err);
   }
@@ -265,7 +314,8 @@ async function propagateGlobalChatAuthor(uid, fields) {
     snap.forEach((child) => {
       for (const [source, target] of Object.entries(fieldMap)) {
         if (Object.prototype.hasOwnProperty.call(fields, source)) {
-          updates[`${child.key}/${target}`] = fields[source];
+          const value = fields[source];
+          updates[`${child.key}/${target}`] = value && typeof value === "object" && value._methodName ? null : value;
         }
       }
     });
