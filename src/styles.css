@@ -139,10 +139,21 @@ body.chat-page .chat-input {
 }
 
 .mod-pill.role-badge-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
   background: rgba(59, 130, 246, .18);
   color: #93c5fd;
   padding: 1px 8px;
   border-radius: 999px;
+  border: 1px solid rgba(59, 130, 246, .45);
+  font-size: 10px;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  vertical-align: middle;
 }
 
 .drawer {

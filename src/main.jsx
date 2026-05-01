@@ -164,11 +164,16 @@ function installTapRipple() {
   window.__alfaTapRippleInstalled = true;
   document.addEventListener("pointerdown", (event) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
-    const source = document.elementFromPoint(event.clientX, event.clientY) || event.target;
-    const target = source?.closest?.(".tap, button, a, [role='button'], [data-ripple]");
+    const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+    const source = path.find((item) => item instanceof Element) || event.target;
+    const target = source?.closest?.(".tap, button, a, [role='button']");
     if (!target || target.disabled || target.closest(".app-splash, .bottom-nav")) return;
     const rect = target.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
+    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) return;
+    document.querySelectorAll(".tap-ripple").forEach((item) => {
+      if (item.parentElement !== target) item.remove();
+    });
     target.querySelectorAll(":scope > .tap-ripple").forEach((item) => item.remove());
     const ripple = document.createElement("span");
     ripple.className = "tap-ripple";
