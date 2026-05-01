@@ -79,6 +79,7 @@ function EditProfileModal({ profile, onClose }) {
     profileTheme: profile.profileTheme || ""
   });
   const [busy, setBusy] = useState(false);
+  const [customOpen, setCustomOpen] = useState(false);
   const fileRef = useRef(null);
 
   const uploadPhoto = async (file) => {
@@ -105,7 +106,7 @@ function EditProfileModal({ profile, onClose }) {
       await updateMyProfile({
         name: form.name.trim(),
         bio: form.bio.trim().slice(0, 180),
-        photoURL: form.photoURL.trim(),
+        photoURL: form.photoURL,
         nameColor: form.nameColor || null,
         nameStyle: form.nameStyle || null,
         profileTheme: form.profileTheme || null,
@@ -151,38 +152,36 @@ function EditProfileModal({ profile, onClose }) {
         </div>
         <input className="input" placeholder="Nome" value={form.name} onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))} style={{ padding: "11px 14px" }} />
         <textarea className="input" placeholder="Bio" value={form.bio} maxLength="180" rows="4" onChange={(event) => setForm((prev) => ({ ...prev, bio: event.target.value }))} style={{ padding: "11px 14px", fontFamily: "inherit", resize: "vertical" }} />
-        <input className="input" placeholder="URL da foto" value={form.photoURL} onChange={(event) => setForm((prev) => ({ ...prev, photoURL: event.target.value }))} style={{ padding: "11px 14px" }} />
         <div className="profile-edit-perks">
-          <div className="profile-edit-perk-section">
-            <div className="profile-edit-perk-title">Cores do nome</div>
-            <div className="profile-unlock-grid">
-              {colorOptions.map((value) => (
-                <button key={value || "default-color"} className={`profile-unlock-option ${form.nameColor === value ? "active" : ""}`} type="button" onClick={() => setForm((prev) => ({ ...prev, nameColor: value }))}>
-                  <span style={value ? { color: value } : null}>{colorLabel(value)}</span>
-                </button>
-              ))}
+          <button className="profile-edit-perks-toggle tap" type="button" onClick={() => setCustomOpen((value) => !value)} aria-expanded={customOpen}>
+            <span>
+              <strong>Personalizacao comprada</strong>
+              <small>{[colorLabel(form.nameColor), styleLabel(form.nameStyle), themeLabel(form.profileTheme)].filter(Boolean).join(" · ")}</small>
+            </span>
+            <span aria-hidden="true">{customOpen ? "−" : "+"}</span>
+          </button>
+          {customOpen ? (
+            <div className="profile-edit-perks-body">
+              <label className="profile-select-row">
+                <span>Cores do nome</span>
+                <select className="input" value={form.nameColor} onChange={(event) => setForm((prev) => ({ ...prev, nameColor: event.target.value }))}>
+                  {colorOptions.map((value) => <option key={value || "default-color"} value={value}>{colorLabel(value)}</option>)}
+                </select>
+              </label>
+              <label className="profile-select-row">
+                <span>Efeitos do nome</span>
+                <select className="input" value={form.nameStyle} onChange={(event) => setForm((prev) => ({ ...prev, nameStyle: event.target.value }))}>
+                  {styleOptions.map((value) => <option key={value || "default-style"} value={value}>{styleLabel(value)}</option>)}
+                </select>
+              </label>
+              <label className="profile-select-row">
+                <span>Temas de perfil</span>
+                <select className="input" value={form.profileTheme} onChange={(event) => setForm((prev) => ({ ...prev, profileTheme: event.target.value }))}>
+                  {themeOptions.map((value) => <option key={value || "default-theme"} value={value}>{themeLabel(value)}</option>)}
+                </select>
+              </label>
             </div>
-          </div>
-          <div className="profile-edit-perk-section">
-            <div className="profile-edit-perk-title">Efeitos do nome</div>
-            <div className="profile-unlock-grid">
-              {styleOptions.map((value) => (
-                <button key={value || "default-style"} className={`profile-unlock-option ${form.nameStyle === value ? "active" : ""}`} type="button" onClick={() => setForm((prev) => ({ ...prev, nameStyle: value }))}>
-                  <span className={value === "gold" ? "name-gold" : value === "grad" ? "name-grad-anim" : ""}>{styleLabel(value)}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="profile-edit-perk-section">
-            <div className="profile-edit-perk-title">Temas de perfil</div>
-            <div className="profile-unlock-grid profile-unlock-grid--themes">
-              {themeOptions.map((value) => (
-                <button key={value || "default-theme"} className={`profile-unlock-option ${form.profileTheme === value ? "active" : ""}`} type="button" onClick={() => setForm((prev) => ({ ...prev, profileTheme: value }))}>
-                  {themeLabel(value)}
-                </button>
-              ))}
-            </div>
-          </div>
+          ) : null}
         </div>
         <button className="btn-primary" type="button" onClick={save} disabled={busy}>{busy ? "A guardar" : "Guardar"}</button>
       </div>

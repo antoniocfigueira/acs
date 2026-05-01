@@ -115,6 +115,46 @@ function revealInitialSplash() {
   window.setTimeout(() => splash.remove(), 430);
 }
 
+function registerAppServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  if (window.location.protocol === "file:") return;
+  if (window.__alfaAppSWRegistered) return;
+  window.__alfaAppSWRegistered = true;
+
+  const base = import.meta.env.BASE_URL || "/";
+  const swUrl = `${base}service-worker.js`;
+  let refreshing = false;
+
+  navigator.serviceWorker.addEventListener("message", (event) => {
+    if (event.data?.type !== "sw-updated" || refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+
+  navigator.serviceWorker.register(swUrl).then((reg) => {
+    const recheck = () => {
+      try { reg.update(); } catch {}
+    };
+    recheck();
+    window.setInterval(recheck, 5 * 60 * 1000);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") recheck();
+    });
+    window.addEventListener("focus", recheck);
+    window.addEventListener("pageshow", (event) => {
+      if (event.persisted) recheck();
+    });
+  }).catch((err) => {
+    console.warn("[Alfa React] service worker register failed:", err?.message || err);
+  });
+}
+
 function installTapRipple() {
   if (window.__alfaTapRippleInstalled) return;
   window.__alfaTapRippleInstalled = true;
@@ -205,6 +245,7 @@ function App() {
 
   useEffect(() => {
     installTapRipple();
+    registerAppServiceWorker();
     try {
       const theme = localStorage.getItem("acs_theme_v1") || "dark";
       document.documentElement.setAttribute("data-theme", theme);

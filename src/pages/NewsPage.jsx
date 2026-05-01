@@ -169,7 +169,9 @@ export function NewsPage() {
   return (
     <PageFrame page="news.html">
       <GradientDefs />
-      <AppHeader title="Alfa News" right={isAdmin ? <button className="icon-btn tap" type="button" aria-label="Nova noticia" onClick={() => setComposer({})}><Plus size={22} /></button> : null} />
+      <AppHeader right={isAdmin ? <button className="icon-btn tap" type="button" aria-label="Nova noticia" onClick={() => setComposer({})}><Plus size={22} /></button> : null}>
+        <div className="logo grad-text news-title-gradient" style={{ fontSize: 18 }}>Alfa News</div>
+      </AppHeader>
       <div className="container">
         {authLoading ? <Loading /> : null}
         {authError ? <Empty title="Nao foi possivel abrir as noticias." detail={authError.message} /> : null}

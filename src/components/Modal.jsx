@@ -21,9 +21,13 @@ export function SheetModal({ title, children, onClose }) {
       }}
     >
       <div
+        className="sheet-modal-panel"
         style={{
           width: "100%",
           maxWidth: 520,
+          maxHeight: "calc(92dvh - env(safe-area-inset-top))",
+          display: "flex",
+          flexDirection: "column",
           background: "#121212",
           borderTop: "1px solid var(--border)",
           borderRadius: "22px 22px 0 0",
@@ -33,13 +37,15 @@ export function SheetModal({ title, children, onClose }) {
         }}
       >
         <div style={{ width: 36, height: 4, borderRadius: 2, background: "#333", margin: "0 auto 12px" }} />
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div className="sheet-modal-head" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flex: "0 0 auto" }}>
           <h3 style={{ fontWeight: 700, fontSize: 17, margin: 0, letterSpacing: "-.01em" }}>{title}</h3>
           <button className="icon-btn tap" type="button" aria-label="Fechar" onClick={onClose} style={{ margin: -6 }}>
             <X size={20} />
           </button>
         </div>
-        {children}
+        <div className="sheet-modal-body" style={{ minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch", paddingRight: 2 }}>
+          {children}
+        </div>
       </div>
       <style>{`@keyframes slideUp { from { transform: translateY(100%);} to { transform: translateY(0);} }`}</style>
     </div>

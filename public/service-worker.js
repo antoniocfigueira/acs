@@ -9,7 +9,7 @@
 // it installs the new SW, which calls skipWaiting + clients.claim and
 // posts {type:"sw-updated"} to all open tabs so they reload.
 // Tip: just `git add` the bumped number → it ships with each deploy.
-const CACHE = "alfa-club-social-v16";
+const CACHE = "alfa-club-social-v17";
 const STATIC_EXT = /\.(png|jpe?g|gif|webp|svg|ico|woff2?|ttf|otf)$/i;
 const SKIP_HOSTS = [
   "firebaseio.com",
