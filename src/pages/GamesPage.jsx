@@ -32,7 +32,6 @@ function makeInitialState() {
   return {
     player: { x: GAME_W / 2, y: 462, vx: 0, vy: -10.8 },
     platforms,
-    height: 0,
     score: 0,
     running: true,
     gameOver: false
@@ -150,6 +149,7 @@ function runStep(state, input) {
       if (above && inside) {
         p.y = platform.y - PLAYER_R;
         p.vy = -10.8;
+        next.score += 1;
         break;
       }
     }
@@ -158,8 +158,6 @@ function runStep(state, input) {
   if (p.y < GAME_H * 0.42) {
     const scroll = GAME_H * 0.42 - p.y;
     p.y = GAME_H * 0.42;
-    next.height += scroll;
-    next.score = Math.floor(next.height / 10);
     next.platforms.forEach((platform) => {
       platform.y += scroll;
     });
@@ -531,14 +529,16 @@ export function GamesPage() {
   }, [profile?.points]);
 
   useEffect(() => {
+    if (loading || error || !user) return undefined;
+    setBooting(true);
     const timer = window.setTimeout(() => setBooting(false), 3000);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [error, loading, user?.uid]);
 
   const leaveWithAnimation = useCallback((fn) => {
     if (closing) return;
     setClosing(true);
-    window.setTimeout(fn, 540);
+    window.setTimeout(fn, 980);
   }, [closing]);
 
   const interceptLeaving = useCallback((event) => {
@@ -587,18 +587,20 @@ export function GamesPage() {
 
   return (
     <PageFrame page="games.html">
-      <div className="games-page-click-layer" onClickCapture={interceptLeaving}>
+      <div className="games-page-route" onClickCapture={interceptLeaving}>
         <GradientDefs />
-        <div className={`games-page-shell ${booting && mode === "hub" ? "is-booting" : ""} ${closing ? "is-closing" : ""}`}>
-          {mode === "hub" ? <AppHeader title="AlfaDS" subtitle={subtitle} /> : null}
-          {mode === "hub" ? (
-            <GamesHub profile={profile} onStart={() => setMode("jump")} />
-          ) : (
-            <JumpGame user={user} profile={profile} onExit={() => setMode("hub")} />
-          )}
+        <div className="games-page-click-layer">
+          <div className={`games-page-shell ${booting && mode === "hub" ? "is-booting" : ""} ${closing ? "is-closing" : ""}`}>
+            {mode === "hub" ? <AppHeader title="AlfaDS" subtitle={subtitle} /> : null}
+            {mode === "hub" ? (
+              <GamesHub profile={profile} onStart={() => setMode("jump")} />
+            ) : (
+              <JumpGame user={user} profile={profile} onExit={() => setMode("hub")} />
+            )}
+          </div>
         </div>
+        <BottomNav active="games.html" />
       </div>
-      <BottomNav active="games.html" />
     </PageFrame>
   );
 }

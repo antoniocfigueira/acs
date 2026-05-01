@@ -1123,6 +1123,13 @@ body.games-page [data-react-page="games.html"] {
     #07070a;
 }
 
+body.games-page .games-page-route {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 body.games-page .app-header {
   flex: 0 0 auto;
 }
@@ -1161,6 +1168,7 @@ body.games-page .games-hub {
 }
 
 body.games-page .games-device.ds-home.dark-ds {
+  position: relative;
   height: min(100%, 672px);
   width: 100%;
   margin-top: 0;
@@ -1177,6 +1185,30 @@ body.games-page .games-device.ds-home.dark-ds {
   box-shadow:
     inset 0 1px rgba(255,255,255,.12),
     0 18px 52px rgba(0,0,0,.42);
+}
+
+body.games-page .games-device.ds-home.dark-ds::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  top: 50%;
+  height: min(122px, 31%);
+  z-index: 24;
+  border-radius: 22px;
+  border: 1px solid rgba(255,255,255,.14);
+  background:
+    radial-gradient(circle at 28% 28%, rgba(125,211,252,.18), transparent 32%),
+    radial-gradient(circle at 72% 62%, rgba(236,72,153,.16), transparent 34%),
+    linear-gradient(180deg, #242631, #0c0d12 54%, #191b24);
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.16),
+    inset 0 -10px 22px rgba(0,0,0,.38),
+    0 12px 34px rgba(0,0,0,.48);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) scale(.96, .72);
+  transform-origin: center;
 }
 
 body.games-page .dark-ds .games-top-screen,
@@ -1745,7 +1777,12 @@ body.games-page .dark-ds .ds-start-btn:disabled {
 
 .games-page-shell.is-booting .games-device {
   transform-style: preserve-3d;
-  animation: dsConsoleArrive 360ms ease-out both;
+  transform-origin: center;
+  animation: dsConsoleArrive 1640ms cubic-bezier(.16,.9,.25,1.02) both;
+}
+
+.games-page-shell.is-booting .games-device::before {
+  animation: dsClosedShellBoot 1640ms cubic-bezier(.16,.9,.25,1.02) both;
 }
 
 .games-page-shell.is-booting .games-top-screen::after,
@@ -1765,13 +1802,17 @@ body.games-page .dark-ds .ds-start-btn:disabled {
 .games-page-shell.is-booting .games-top-screen {
   transform-origin: bottom center;
   backface-visibility: hidden;
-  animation: dsTopOpen 760ms cubic-bezier(.16,.9,.25,1.02) both;
+  animation: dsTopOpen 1500ms cubic-bezier(.16,.9,.25,1.02) 140ms both;
 }
 
 .games-page-shell.is-booting .games-bottom-screen {
   transform-origin: top center;
   backface-visibility: hidden;
-  animation: dsBottomOpen 760ms cubic-bezier(.16,.9,.25,1.02) both;
+  animation: dsBottomOpen 1500ms cubic-bezier(.16,.9,.25,1.02) 140ms both;
+}
+
+.games-page-shell.is-booting .games-hinge {
+  animation: dsHingeOpen 1500ms cubic-bezier(.16,.9,.25,1.02) 140ms both;
 }
 
 .games-page-shell.is-booting .ds-boot-logo {
@@ -1780,17 +1821,26 @@ body.games-page .dark-ds .ds-start-btn:disabled {
 
 .games-page-shell.is-closing .games-device {
   transform-style: preserve-3d;
-  animation: dsConsoleLeave 520ms cubic-bezier(.4,0,.2,1) both;
+  transform-origin: center;
+  animation: dsConsoleLeave 960ms cubic-bezier(.4,0,.2,1) both;
+}
+
+.games-page-shell.is-closing .games-device::before {
+  animation: dsClosedShellClose 960ms cubic-bezier(.4,0,.2,1) both;
 }
 
 .games-page-shell.is-closing .games-top-screen {
   transform-origin: bottom center;
-  animation: dsTopClose 520ms cubic-bezier(.4,0,.2,1) both;
+  animation: dsTopClose 960ms cubic-bezier(.4,0,.2,1) both;
 }
 
 .games-page-shell.is-closing .games-bottom-screen {
   transform-origin: top center;
-  animation: dsBottomClose 520ms cubic-bezier(.4,0,.2,1) both;
+  animation: dsBottomClose 960ms cubic-bezier(.4,0,.2,1) both;
+}
+
+.games-page-shell.is-closing .games-hinge {
+  animation: dsHingeClose 960ms cubic-bezier(.4,0,.2,1) both;
 }
 
 @keyframes jumpArtworkFloat {
@@ -1818,20 +1868,61 @@ body.games-page .dark-ds .ds-start-btn:disabled {
 }
 
 @keyframes dsConsoleArrive {
-  0% { opacity: 0; transform: translateY(18px) scale(.94); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(.88, .16);
+  }
+  12%, 30% {
+    opacity: 1;
+    transform: translateY(0) scale(.96, .22);
+  }
+  66% {
+    opacity: 1;
+    transform: translateY(0) scale(1.01, 1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dsClosedShellBoot {
+  0%, 28% {
+    opacity: 1;
+    transform: translateY(-50%) scale(.96, .72);
+  }
+  42% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1, .58);
+  }
+  68% {
+    opacity: .22;
+    transform: translateY(-50%) scale(1.03, .36);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) scale(1.04, .28);
+  }
 }
 
 @keyframes dsTopOpen {
-  0% { transform: rotateX(-82deg); filter: brightness(.35); }
-  62% { transform: rotateX(7deg); filter: brightness(1); }
-  100% { transform: rotateX(0); filter: brightness(1); }
+  0%, 28% { transform: translateY(50%) scaleY(.02) rotateX(-96deg); filter: brightness(.12); opacity: 0; }
+  42% { transform: translateY(34%) scaleY(.2) rotateX(-76deg); filter: brightness(.24); opacity: .9; }
+  68% { transform: translateY(-2%) scaleY(1.03) rotateX(10deg); filter: brightness(1); opacity: 1; }
+  100% { transform: translateY(0) scaleY(1) rotateX(0); filter: brightness(1); opacity: 1; }
 }
 
 @keyframes dsBottomOpen {
-  0% { transform: rotateX(64deg); filter: brightness(.55); }
-  62% { transform: rotateX(-4deg); filter: brightness(1); }
-  100% { transform: rotateX(0); filter: brightness(1); }
+  0%, 28% { transform: translateY(-50%) scaleY(.02) rotateX(82deg); filter: brightness(.14); opacity: 0; }
+  42% { transform: translateY(-34%) scaleY(.2) rotateX(64deg); filter: brightness(.28); opacity: .9; }
+  68% { transform: translateY(2%) scaleY(1.03) rotateX(-7deg); filter: brightness(1); opacity: 1; }
+  100% { transform: translateY(0) scaleY(1) rotateX(0); filter: brightness(1); opacity: 1; }
+}
+
+@keyframes dsHingeOpen {
+  0%, 28% { opacity: 0; transform: scaleX(.72); }
+  46% { opacity: .78; transform: scaleX(.92); }
+  100% { opacity: 1; transform: scaleX(1); }
 }
 
 @keyframes dsBootLogo {
@@ -1859,17 +1950,41 @@ body.games-page .dark-ds .ds-start-btn:disabled {
 
 @keyframes dsConsoleLeave {
   0% { opacity: 1; transform: translateY(0) scale(1); }
-  100% { opacity: 0; transform: translateY(18px) scale(.92); }
+  54% { opacity: 1; transform: translateY(0) scale(.96, .24); }
+  100% { opacity: 0; transform: translateY(18px) scale(.88, .16); }
+}
+
+@keyframes dsClosedShellClose {
+  0%, 44% {
+    opacity: 0;
+    transform: translateY(-50%) scale(1.04, .28);
+  }
+  72% {
+    opacity: .9;
+    transform: translateY(-50%) scale(1, .58);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(-50%) scale(.96, .72);
+  }
 }
 
 @keyframes dsTopClose {
-  0% { transform: rotateX(0); }
-  100% { transform: rotateX(-82deg); }
+  0% { transform: translateY(0) scaleY(1) rotateX(0); opacity: 1; }
+  56% { transform: translateY(32%) scaleY(.22) rotateX(-72deg); opacity: .84; }
+  100% { transform: translateY(50%) scaleY(.02) rotateX(-96deg); opacity: 0; }
 }
 
 @keyframes dsBottomClose {
-  0% { transform: rotateX(0); }
-  100% { transform: rotateX(64deg); }
+  0% { transform: translateY(0) scaleY(1) rotateX(0); opacity: 1; }
+  56% { transform: translateY(-32%) scaleY(.22) rotateX(64deg); opacity: .84; }
+  100% { transform: translateY(-50%) scaleY(.02) rotateX(82deg); opacity: 0; }
+}
+
+@keyframes dsHingeClose {
+  0% { opacity: 1; transform: scaleX(1); }
+  58% { opacity: .55; transform: scaleX(.9); }
+  100% { opacity: 0; transform: scaleX(.72); }
 }
 
 @media (max-width: 390px) {
