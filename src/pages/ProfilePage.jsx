@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   arrayRemove,
   arrayUnion,
@@ -16,13 +16,14 @@ import { Edit3, LogOut, Share2 } from "lucide-react";
 import { AppHeader, BottomNav, GradientDefs, PageFrame } from "../components/Shell.jsx";
 import { SheetModal } from "../components/Modal.jsx";
 import { PostCard } from "../components/PostCard.jsx";
+import { usePullToRefresh } from "../hooks/usePullToRefresh.js";
 import { logout, updateMyProfile, useAuthProfile } from "../lib/auth.js";
 import { db } from "../lib/firebase.js";
 import { routeTo } from "../lib/navigation.js";
 import { uploadMedia } from "../lib/upload.js";
 import { Avatar, buildDmChatId, Empty, Loading, RoleBadges, StyledName, toast } from "../lib/ui.jsx";
 
-function useProfile(username, currentUser, currentProfile) {
+function useProfile(username, currentUser, currentProfile, refreshKey = 0) {
   const [state, setState] = useState({ loading: true, profile: null, error: null });
   useEffect(() => {
     let alive = true;
@@ -47,11 +48,11 @@ function useProfile(username, currentUser, currentProfile) {
     return () => {
       alive = false;
     };
-  }, [currentProfile, currentUser, username]);
+  }, [currentProfile, currentUser, refreshKey, username]);
   return state;
 }
 
-function useUserPosts(uid) {
+function useUserPosts(uid, refreshKey = 0) {
   const [state, setState] = useState({ loading: true, posts: [], error: null });
   useEffect(() => {
     if (!uid) return undefined;
@@ -65,7 +66,7 @@ function useUserPosts(uid) {
       });
       setState({ loading: false, posts, error: null });
     }, (err) => setState({ loading: false, posts: [], error: err }));
-  }, [uid]);
+  }, [refreshKey, uid]);
   return state;
 }
 
@@ -232,11 +233,22 @@ export function ProfilePage({ search }) {
   const { loading: authLoading, user, profile: currentProfile, error: authError } = useAuthProfile({ requireUser: true });
   const params = useMemo(() => new URLSearchParams(search || ""), [search]);
   const username = params.get("u") || "";
-  const viewed = useProfile(username, user, currentProfile);
-  const posts = useUserPosts(viewed.profile?.uid);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const containerRef = useRef(null);
+  const viewed = useProfile(username, user, currentProfile, refreshKey);
+  const posts = useUserPosts(viewed.profile?.uid, refreshKey);
   const [tab, setTab] = useState("posts");
   const [editOpen, setEditOpen] = useState(false);
   const [followList, setFollowList] = useState(null);
+  const refreshProfile = useCallback(() => {
+    setRefreshKey((value) => value + 1);
+    toast("Perfil atualizado!", "success");
+  }, []);
+
+  usePullToRefresh(containerRef, {
+    enabled: !!user && !!viewed.profile && !editOpen && !followList,
+    onRefresh: refreshProfile
+  });
 
   const isMe = user?.uid && viewed.profile?.uid === user.uid;
   const followers = Array.isArray(viewed.profile?.followers) ? viewed.profile.followers : [];
@@ -299,7 +311,7 @@ export function ProfilePage({ search }) {
     <PageFrame page="profile.html">
       <GradientDefs />
       <AppHeader title="Perfil" right={<button className="icon-btn tap" type="button" aria-label="Partilhar" onClick={share}><Share2 size={22} /></button>} />
-      <div className="container">
+      <div className="container" ref={containerRef}>
         {authLoading || viewed.loading ? <Loading /> : null}
         {authError ? <Empty title="Nao foi possivel abrir o perfil." detail={authError.message} /> : null}
         {viewed.error ? <Empty title="Perfil nao encontrado." detail={viewed.error.message} /> : null}

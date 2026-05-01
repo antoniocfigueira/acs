@@ -164,10 +164,12 @@ function installTapRipple() {
   window.__alfaTapRippleInstalled = true;
   document.addEventListener("pointerdown", (event) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
-    const target = event.target?.closest?.("button, a, [role='button'], .tap, [data-ripple]");
-    if (!target || target.disabled || target.closest(".app-splash")) return;
+    const source = document.elementFromPoint(event.clientX, event.clientY) || event.target;
+    const target = source?.closest?.(".tap, button, a, [role='button'], [data-ripple]");
+    if (!target || target.disabled || target.closest(".app-splash, .bottom-nav")) return;
     const rect = target.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
+    target.querySelectorAll(":scope > .tap-ripple").forEach((item) => item.remove());
     const ripple = document.createElement("span");
     ripple.className = "tap-ripple";
     const size = Math.max(rect.width, rect.height) * 1.75;
@@ -177,7 +179,10 @@ function installTapRipple() {
     ripple.style.top = `${event.clientY - rect.top}px`;
     target.classList.add("has-local-ripple");
     target.appendChild(ripple);
-    ripple.addEventListener("animationend", () => ripple.remove(), { once: true });
+    ripple.addEventListener("animationend", () => {
+      ripple.remove();
+      if (!target.querySelector(":scope > .tap-ripple")) target.classList.remove("has-local-ripple");
+    }, { once: true });
   }, { passive: true });
 }
 

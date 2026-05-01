@@ -1,11 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { doc, increment, serverTimestamp, setDoc } from "firebase/firestore";
 import { Battery, ChevronLeft, Coins, Play, RotateCcw, Smartphone, Trophy, Wifi } from "lucide-react";
 import { AppHeader, BottomNav, GradientDefs, PageFrame } from "../components/Shell.jsx";
 import { useAuthProfile } from "../lib/auth.js";
 import { db } from "../lib/firebase.js";
-import { normalizeLocalHref, routeTo } from "../lib/navigation.js";
-import { Loading, toast } from "../lib/ui.jsx";
+import { toast } from "../lib/ui.jsx";
 
 const GAME_W = 360;
 const GAME_H = 560;
@@ -16,7 +15,7 @@ function clamp(value, min, max) {
 }
 
 function makePlatform(x, y, w = 74, kind = "normal") {
-  return { x, y, w, h: 12, kind };
+  return { x, y, w, h: 12, kind, press: 0 };
 }
 
 function makeInitialState() {
@@ -81,18 +80,20 @@ function drawGame(ctx, state, tiltReady, started) {
   ctx.globalAlpha = 1;
 
   state.platforms.forEach((platform) => {
-    const glow = ctx.createLinearGradient(platform.x, platform.y, platform.x + platform.w, platform.y);
+    const press = platform.press || 0;
+    const y = platform.y + press;
+    const glow = ctx.createLinearGradient(platform.x, y, platform.x + platform.w, y);
     glow.addColorStop(0, "#a855f7");
     glow.addColorStop(0.55, "#ec4899");
     glow.addColorStop(1, "#7dd3fc");
     ctx.shadowColor = "rgba(236,72,153,.35)";
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = 14 - Math.min(press, 8);
     ctx.fillStyle = glow;
-    drawRoundRect(ctx, platform.x, platform.y, platform.w, platform.h, 8);
+    drawRoundRect(ctx, platform.x, y, platform.w, platform.h, 8);
     ctx.fill();
     ctx.shadowBlur = 0;
     ctx.fillStyle = "rgba(255,255,255,.72)";
-    drawRoundRect(ctx, platform.x + 7, platform.y + 2, platform.w - 14, 2, 2);
+    drawRoundRect(ctx, platform.x + 7, y + 2, platform.w - 14, 2, 2);
     ctx.fill();
   });
 
@@ -134,6 +135,9 @@ function runStep(state, input) {
     platforms: state.platforms.map((platform) => ({ ...platform }))
   };
   const p = next.player;
+  next.platforms.forEach((platform) => {
+    platform.press = Math.max(0, (platform.press || 0) * 0.72 - 0.18);
+  });
   p.vx = input * 4.3;
   p.x += p.vx;
   p.vy += 0.34;
@@ -149,6 +153,7 @@ function runStep(state, input) {
       if (above && inside) {
         p.y = platform.y - PLAYER_R;
         p.vy = -10.8;
+        platform.press = 8;
         next.score += 1;
         break;
       }
@@ -248,7 +253,7 @@ function EmptyArtwork({ index }) {
 function GamesHub({ profile, onStart }) {
   const [selectedId, setSelectedId] = useState("alfaJump");
   const [opening, setOpening] = useState(false);
-  const best = profile?.gameStats?.alfaJumpBest || 0;
+  const best = profile?.gameStats?.alfaJumpBest || profile?.["gameStats.alfaJumpBest"] || 0;
   const points = profile?.points || 0;
   const now = new Date();
   const dateLabel = now.toLocaleDateString("pt-PT", { day: "numeric", month: "numeric", weekday: "short" }).replace(".", "");
@@ -327,7 +332,7 @@ function JumpGame({ user, profile, onExit }) {
   const stateRef = useRef(makeInitialState());
   const inputRef = useRef({ tilt: 0, key: 0, touch: 0 });
   const finishRef = useRef(false);
-  const bestRef = useRef(profile?.gameStats?.alfaJumpBest || 0);
+  const bestRef = useRef(profile?.gameStats?.alfaJumpBest || profile?.["gameStats.alfaJumpBest"] || 0);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [earned, setEarned] = useState(0);
@@ -335,8 +340,8 @@ function JumpGame({ user, profile, onExit }) {
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    bestRef.current = profile?.gameStats?.alfaJumpBest || 0;
-  }, [profile?.gameStats?.alfaJumpBest]);
+    bestRef.current = profile?.gameStats?.alfaJumpBest || profile?.["gameStats.alfaJumpBest"] || 0;
+  }, [profile?.gameStats?.alfaJumpBest, profile?.["gameStats.alfaJumpBest"]]);
 
   const finishGame = useCallback(async (finalScore) => {
     if (finishRef.current) return;
@@ -344,13 +349,22 @@ function JumpGame({ user, profile, onExit }) {
     setGameOver(true);
     const shopPoints = Math.floor(finalScore / 10);
     setEarned(shopPoints);
+    if (!user?.uid) {
+      toast("Nao consegui guardar o recorde.", "error");
+      return;
+    }
     try {
       const updates = {
-        "gameStats.alfaJumpLast": finalScore,
-        "gameStats.alfaJumpPlays": increment(1),
-        "gameStats.alfaJumpUpdatedAt": serverTimestamp()
+        gameStats: {
+          alfaJumpLast: finalScore,
+          alfaJumpPlays: increment(1),
+          alfaJumpUpdatedAt: serverTimestamp()
+        }
       };
-      if (finalScore > bestRef.current) updates["gameStats.alfaJumpBest"] = finalScore;
+      if (finalScore > bestRef.current) {
+        updates.gameStats.alfaJumpBest = finalScore;
+        bestRef.current = finalScore;
+      }
       if (shopPoints > 0) {
         updates.points = increment(shopPoints);
         updates.totalPointsEarned = increment(shopPoints);
@@ -361,7 +375,7 @@ function JumpGame({ user, profile, onExit }) {
       console.warn("game reward:", err?.message || err);
       toast("Nao consegui guardar os pontos.", "error");
     }
-  }, [user.uid]);
+  }, [user?.uid]);
 
   const resetGame = useCallback(() => {
     stateRef.current = makeInitialState();
@@ -473,7 +487,7 @@ function JumpGame({ user, profile, onExit }) {
         </div>
         <div>
           <span>Recorde</span>
-          <strong>{Math.max(profile?.gameStats?.alfaJumpBest || 0, score)}</strong>
+          <strong>{Math.max(profile?.gameStats?.alfaJumpBest || profile?.["gameStats.alfaJumpBest"] || 0, score)}</strong>
         </div>
       </div>
 
@@ -522,59 +536,14 @@ export function GamesPage() {
   const { loading, user, profile, error } = useAuthProfile({ requireUser: true });
   const [mode, setMode] = useState("hub");
   const [booting, setBooting] = useState(true);
-  const [closing, setClosing] = useState(false);
-  const subtitle = useMemo(() => {
-    const points = profile?.points || 0;
-    return `${points} pontos da loja`;
-  }, [profile?.points]);
 
   useEffect(() => {
-    if (loading || error || !user) return undefined;
     setBooting(true);
     const timer = window.setTimeout(() => setBooting(false), 3000);
     return () => window.clearTimeout(timer);
-  }, [error, loading, user?.uid]);
+  }, []);
 
-  const leaveWithAnimation = useCallback((fn) => {
-    if (closing) return;
-    setClosing(true);
-    window.setTimeout(fn, 980);
-  }, [closing]);
-
-  const interceptLeaving = useCallback((event) => {
-    if (mode !== "hub") return;
-    const backButton = event.target.closest?.("button[aria-label='Voltar']");
-    if (backButton) {
-      event.preventDefault();
-      event.stopPropagation();
-      leaveWithAnimation(() => {
-        if (window.history.length > 1) window.history.back();
-        else routeTo("index.html");
-      });
-      return;
-    }
-
-    const anchor = event.target.closest?.("a[href]");
-    if (!anchor) return;
-    const local = normalizeLocalHref(anchor.getAttribute("href"));
-    if (!local || local.page === "games.html") return;
-    event.preventDefault();
-    event.stopPropagation();
-    leaveWithAnimation(() => routeTo(local.page, local.search, local.hash));
-  }, [leaveWithAnimation, mode]);
-
-  if (loading) {
-    return (
-      <PageFrame page="games.html">
-        <GradientDefs />
-        <AppHeader title="Jogos" subtitle="A preparar arcade" />
-        <Loading />
-        <BottomNav active="games.html" />
-      </PageFrame>
-    );
-  }
-
-  if (error || !user) {
+  if (!loading && (error || !user)) {
     return (
       <PageFrame page="games.html">
         <GradientDefs />
@@ -587,11 +556,11 @@ export function GamesPage() {
 
   return (
     <PageFrame page="games.html">
-      <div className="games-page-route" onClickCapture={interceptLeaving}>
+      <div className="games-page-route">
         <GradientDefs />
         <div className="games-page-click-layer">
-          <div className={`games-page-shell ${booting && mode === "hub" ? "is-booting" : ""} ${closing ? "is-closing" : ""}`}>
-            {mode === "hub" ? <AppHeader title="AlfaDS" subtitle={subtitle} /> : null}
+          <div className={`games-page-shell ${booting && mode === "hub" ? "is-booting" : ""}`}>
+            {mode === "hub" ? <AppHeader title="AlfaDS" /> : null}
             {mode === "hub" ? (
               <GamesHub profile={profile} onStart={() => setMode("jump")} />
             ) : (

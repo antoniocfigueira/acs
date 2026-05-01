@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   addDoc,
   arrayUnion,
@@ -22,6 +22,7 @@ import { BottomNav, GradientDefs, LegacySettingsIcon, PageFrame } from "../compo
 import { SheetModal, SideDrawer } from "../components/Modal.jsx";
 import { NotificationsButton, NotificationsModal } from "../components/Notifications.jsx";
 import { PostCard } from "../components/PostCard.jsx";
+import { usePullToRefresh } from "../hooks/usePullToRefresh.js";
 import { logout, updateMyProfile, useAuthProfile } from "../lib/auth.js";
 import { db, initPush } from "../lib/firebase.js";
 import { routeTo } from "../lib/navigation.js";
@@ -78,7 +79,7 @@ function applyAppTheme(theme) {
   try { localStorage.setItem("acs_theme_v1", safeTheme); } catch {}
 }
 
-function usePosts(user, profile, filter) {
+function usePosts(user, profile, filter, refreshKey = 0) {
   const [state, setState] = useState({ loading: true, posts: [], error: null });
   useEffect(() => {
     if (!user) return undefined;
@@ -95,11 +96,11 @@ function usePosts(user, profile, filter) {
       });
       setState({ loading: false, posts, error: null });
     }, (err) => setState({ loading: false, posts: [], error: err }));
-  }, [filter, profile, user]);
+  }, [filter, profile, refreshKey, user]);
   return state;
 }
 
-function useStories() {
+function useStories(refreshKey = 0) {
   const [stories, setStories] = useState([]);
   useEffect(() => {
     const q = query(collection(db, "stories"), orderBy("createdAt", "desc"), fsLimit(50));
@@ -114,7 +115,7 @@ function useStories() {
       });
       setStories(rows);
     });
-  }, []);
+  }, [refreshKey]);
   return stories;
 }
 
@@ -1138,17 +1139,37 @@ function ArchiveModal({ user, profile, onClose, onBack }) {
   const [entries, setEntries] = useState([]);
   const [openSection, setOpenSection] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [archiveError, setArchiveError] = useState("");
+  const [entriesError, setEntriesError] = useState("");
   const [editor, setEditor] = useState(null);
-  const allRoles = useRoles(!!profile?.isAdmin);
+  const isArchiveAdmin = !!profile?.isAdmin || profile?.role === "admin";
+  const allRoles = useRoles(isArchiveAdmin);
   const rolesById = useMemo(() => new Map(allRoles.map((role) => [role.id, role])), [allRoles]);
+  const sortArchiveItems = (items) => [...items].sort((a, b) => {
+    const ao = Number.isFinite(Number(a.order)) ? Number(a.order) : Number.MAX_SAFE_INTEGER;
+    const bo = Number.isFinite(Number(b.order)) ? Number(b.order) : Number.MAX_SAFE_INTEGER;
+    if (ao !== bo) return ao - bo;
+    const at = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+    const bt = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+    return at - bt;
+  });
+  const getSectionRoles = (section) => {
+    const raw = Array.isArray(section?.requiredRoles) ? section.requiredRoles
+      : Array.isArray(section?.roles) ? section.roles
+        : Array.isArray(section?.visibleToRoles) ? section.visibleToRoles
+          : Array.isArray(section?.allowedRoles) ? section.allowedRoles
+            : [];
+    return raw.map((role) => String(role).trim()).filter(Boolean);
+  };
 
   useEffect(() => {
-    const q = query(collection(db, "archiveSections"), orderBy("order", "asc"));
-    return onSnapshot(q, (snap) => {
-      setSections(snap.docs.map((item) => ({ id: item.id, ...item.data() })));
+    return onSnapshot(collection(db, "archiveSections"), (snap) => {
+      setSections(sortArchiveItems(snap.docs.map((item) => ({ id: item.id, ...item.data() }))));
+      setArchiveError("");
       setLoading(false);
     }, (err) => {
       setLoading(false);
+      setArchiveError(err.message || "Erro desconhecido.");
       toast(`Erro no arquivo: ${err.message}`, "error");
     });
   }, []);
@@ -1156,36 +1177,42 @@ function ArchiveModal({ user, profile, onClose, onBack }) {
   useEffect(() => {
     if (!openSection?.id) {
       setEntries([]);
+      setEntriesError("");
       return undefined;
     }
-    const q = query(collection(db, "archiveSections", openSection.id, "entries"), orderBy("order", "asc"));
-    return onSnapshot(q, (snap) => {
-      setEntries(snap.docs.map((item) => ({ id: item.id, ...item.data() })));
-    }, (err) => toast(`Erro nas entradas: ${err.message}`, "error"));
+    return onSnapshot(collection(db, "archiveSections", openSection.id, "entries"), (snap) => {
+      setEntries(sortArchiveItems(snap.docs.map((item) => ({ id: item.id, ...item.data() }))));
+      setEntriesError("");
+    }, (err) => {
+      setEntriesError(err.message || "Erro desconhecido.");
+      toast(`Erro nas entradas: ${err.message}`, "error");
+    });
   }, [openSection?.id]);
 
   const profileRoles = useMemo(() => {
     const roles = new Set(Array.isArray(profile?.roles) ? profile.roles : []);
     if (profile?.role) roles.add(profile.role);
-    if (profile?.isAdmin) roles.add("admin");
+    if (profile?.isAdmin || profile?.role === "admin") roles.add("admin");
+    if (profile?.isMod || profile?.role === "mod") roles.add("mod");
     return roles;
   }, [profile]);
 
   const canSeeSection = (section) => {
-    if (profile?.isAdmin) return true;
-    const required = Array.isArray(section.requiredRoles) ? section.requiredRoles.filter(Boolean) : [];
+    if (isArchiveAdmin || section?.createdBy === user?.uid) return true;
+    const required = getSectionRoles(section);
     return !required.length || required.some((role) => profileRoles.has(role));
   };
 
-  const canManageSection = (section) => !!profile?.isAdmin || section?.createdBy === user?.uid;
+  const canManageSection = (section) => isArchiveAdmin || section?.createdBy === user?.uid;
   const visibleSections = sections.filter(canSeeSection);
 
   const saveSection = async (values) => {
+    const currentRequiredRoles = Array.isArray(editor?.item?.requiredRoles) ? editor.item.requiredRoles : [];
     const data = {
       name: values.name.trim(),
       description: values.description.trim(),
       icon: values.icon.trim() || "📁",
-      requiredRoles: values.requiredRoles.split(",").map((item) => item.trim()).filter(Boolean),
+      requiredRoles: isArchiveAdmin ? values.requiredRoles.split(",").map((item) => item.trim()).filter(Boolean) : currentRequiredRoles,
       order: Number(values.order) || sections.length + 1,
       updatedAt: serverTimestamp()
     };
@@ -1251,24 +1278,27 @@ function ArchiveModal({ user, profile, onClose, onBack }) {
   };
 
   return (
-    <SideDrawer onClose={onClose}>
-      {() => <div className="sub-panel active">
-        <div className="sub-panel-head">
-          {openSection ? (
-            <button className="icon-btn tap" type="button" aria-label="Voltar" onClick={() => setOpenSection(null)}><ChevronLeft size={20} /></button>
-          ) : (
-            <button className="icon-btn tap" type="button" aria-label="Voltar" onClick={onBack}><ChevronLeft size={20} /></button>
-          )}
-          <div id="archiveTitle" style={{ fontWeight: 700 }}>{openSection?.name || "Arquivo"}</div>
-          <button className="btn-ghost tap" type="button" style={{ padding: "7px 10px", fontSize: 12 }} onClick={() => setEditor(openSection ? { type: "entry" } : { type: "section" })} disabled={!!openSection && !canManageSection(openSection)}>
-            {openSection ? "+ Entrada" : "+ Seccao"}
-          </button>
-        </div>
+    <>
+      <SideDrawer onClose={onClose}>
+        {() => <div className="sub-panel active">
+          <div className="sub-panel-head">
+            {openSection ? (
+              <button className="icon-btn tap" type="button" aria-label="Voltar" onClick={() => setOpenSection(null)}><ChevronLeft size={20} /></button>
+            ) : (
+              <button className="icon-btn tap" type="button" aria-label="Voltar" onClick={onBack}><ChevronLeft size={20} /></button>
+            )}
+            <div id="archiveTitle" style={{ fontWeight: 700 }}>{openSection?.name || "Arquivo"}</div>
+            <button className="btn-ghost tap" type="button" style={{ padding: "7px 10px", fontSize: 12 }} onClick={() => setEditor(openSection ? { type: "entry" } : { type: "section" })} disabled={!!openSection && !canManageSection(openSection)}>
+              {openSection ? "+ Entrada" : "+ Seccao"}
+            </button>
+          </div>
 
         {!openSection ? (
           <div id="archiveSectionsList" className="settings-section" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {loading ? <Loading /> : null}
-            {!loading && !visibleSections.length ? <Empty title="Ainda nao ha seccoes." detail="Cria uma seccao para organizar o arquivo." /> : null}
+            {!loading && archiveError ? <Empty title="Nao consegui carregar o arquivo." detail={archiveError} /> : null}
+            {!loading && !archiveError && !sections.length ? <Empty title="Ainda nao ha seccoes." detail="Cria uma seccao para organizar o arquivo." /> : null}
+            {!loading && !archiveError && sections.length > 0 && !visibleSections.length ? <Empty title="Sem seccoes visiveis." detail="Ha seccoes no arquivo, mas nenhuma esta disponivel para as tuas roles." /> : null}
             {visibleSections.map((section) => (
               <div className="archive-section-card" key={section.id}>
                 <button type="button" className="archive-section-body" onClick={() => setOpenSection(section)}>
@@ -1295,7 +1325,8 @@ function ArchiveModal({ user, profile, onClose, onBack }) {
           </div>
         ) : (
           <div id="archiveEntriesList" className="settings-section" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {!entries.length ? <Empty title="Esta seccao esta vazia." detail={canManageSection(openSection) ? "Adiciona uma entrada." : ""} /> : null}
+            {entriesError ? <Empty title="Nao consegui carregar esta seccao." detail={entriesError} /> : null}
+            {!entriesError && !entries.length ? <Empty title="Esta seccao esta vazia." detail={canManageSection(openSection) ? "Adiciona uma entrada." : ""} /> : null}
             {entries.map((entry) => (
               <div className="archive-entry-card" key={entry.id}>
                 {entry.imageURL ? <div className="archive-entry-image"><img src={entry.imageURL} alt="" loading="lazy" /></div> : null}
@@ -1318,10 +1349,11 @@ function ArchiveModal({ user, profile, onClose, onBack }) {
             ))}
           </div>
         )}
-      </div>}
-      {editor?.type === "section" ? <ArchiveSectionEditor item={editor.item} sectionsCount={sections.length} isAdmin={!!profile?.isAdmin} roles={allRoles} onClose={() => setEditor(null)} onSave={saveSection} /> : null}
+        </div>}
+      </SideDrawer>
+      {editor?.type === "section" ? <ArchiveSectionEditor item={editor.item} sectionsCount={sections.length} isAdmin={isArchiveAdmin} roles={allRoles} onClose={() => setEditor(null)} onSave={saveSection} /> : null}
       {editor?.type === "entry" ? <ArchiveEntryEditor item={editor.item} entriesCount={entries.length} onClose={() => setEditor(null)} onSave={saveEntry} /> : null}
-    </SideDrawer>
+    </>
   );
 }
 
@@ -1396,8 +1428,33 @@ export function FeedPage({ search = "" }) {
   const { loading: authLoading, user, profile, error } = useAuthProfile({ requireUser: true });
   const [filter, setFilter] = useState(() => localStorage.getItem("alfa_feed_filter") || "global");
   const [modal, setModal] = useState(null);
-  const posts = usePosts(user, profile, filter);
-  const stories = useStories();
+  const [refreshKey, setRefreshKey] = useState(0);
+  const containerRef = useRef(null);
+  const logoTimerRef = useRef(null);
+  const [logoPop, setLogoPop] = useState(false);
+  const posts = usePosts(user, profile, filter, refreshKey);
+  const stories = useStories(refreshKey);
+  const refreshFeed = useCallback(() => {
+    setRefreshKey((value) => value + 1);
+    toast("Feed atualizado!", "success");
+  }, []);
+  const popLogo = useCallback(() => {
+    if (logoTimerRef.current) window.clearTimeout(logoTimerRef.current);
+    setLogoPop(false);
+    requestAnimationFrame(() => {
+      setLogoPop(true);
+      logoTimerRef.current = window.setTimeout(() => setLogoPop(false), 800);
+    });
+  }, []);
+
+  usePullToRefresh(containerRef, {
+    enabled: !!user && !!profile && !modal,
+    onRefresh: refreshFeed
+  });
+
+  useEffect(() => () => {
+    if (logoTimerRef.current) window.clearTimeout(logoTimerRef.current);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("alfa_feed_filter", filter);
@@ -1415,7 +1472,21 @@ export function FeedPage({ search = "" }) {
           <button className="icon-btn tap" type="button" aria-label="Definicoes" onClick={() => setModal("settings")}><LegacySettingsIcon size={22} /></button>
         </div>
         <div className="app-header-title">
-          <div className="logo grad-text">Alfa Club</div>
+          <div
+            id="appLogoTitle"
+            className={`logo grad-text ${logoPop ? "logo-pop" : ""}`}
+            role="button"
+            tabIndex={0}
+            onClick={popLogo}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                popLogo();
+              }
+            }}
+          >
+            Alfa Club
+          </div>
         </div>
         <div className="app-header-right">
           <NotificationsButton user={user} onOpen={() => setModal("notifications")} />
@@ -1423,7 +1494,7 @@ export function FeedPage({ search = "" }) {
         </div>
       </header>
 
-      <div className="container">
+      <div className="container" ref={containerRef}>
         {authLoading ? <Loading /> : null}
         {error ? <Empty title="Nao foi possivel abrir a app." detail={error.message} /> : null}
         {!authLoading && user && profile ? (
