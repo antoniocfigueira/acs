@@ -19,6 +19,7 @@ import { db } from "../lib/firebase.js";
 import { routeTo } from "../lib/navigation.js";
 import { Avatar, RoleBadges, StyledName, timeAgo, toast } from "../lib/ui.jsx";
 import { SheetModal } from "./Modal.jsx";
+import { createNotification } from "./Notifications.jsx";
 
 export function PostCard({ post, user, profile, compact = false }) {
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -54,6 +55,7 @@ export function PostCard({ post, user, profile, compact = false }) {
 
   const vote = async (type) => {
     if (!user?.uid) return;
+    let createdLike = false;
     try {
       const voteRef = doc(db, "posts", post.id, "votes", user.uid);
       const postRef = doc(db, "posts", post.id);
@@ -78,8 +80,20 @@ export function PostCard({ post, user, profile, compact = false }) {
         }
         tx.update(postRef, { likes: increment(dLikes), dislikes: increment(dDislikes) });
         if (post.uid) tx.update(doc(db, "users", post.uid), { points: increment(dLikes) });
+        createdLike = type === "like" && next === "like";
         setMyVote(next);
       });
+      if (createdLike && post.uid && post.uid !== user.uid) {
+        await createNotification(post.uid, {
+          type: "like",
+          fromUid: user.uid,
+          fromName: profile?.name || "",
+          fromUsername: profile?.username || "",
+          fromPhoto: profile?.photoURL || "",
+          postId: post.id,
+          text: "gostou do teu post"
+        });
+      }
     } catch (err) {
       toast(`Erro: ${err.message}`, "error");
     }
@@ -379,6 +393,17 @@ function Comments({ post, user, profile }) {
         at: serverTimestamp()
       });
       await updateDoc(doc(db, "posts", post.id), { commentsCount: increment(1) });
+      if (post.uid && post.uid !== user.uid) {
+        await createNotification(post.uid, {
+          type: "comment",
+          fromUid: user.uid,
+          fromName: profile?.name || "",
+          fromUsername: profile?.username || "",
+          fromPhoto: profile?.photoURL || "",
+          postId: post.id,
+          text: `comentou: "${clean.slice(0, 60)}${clean.length > 60 ? "..." : ""}"`
+        });
+      }
     } catch (err) {
       toast(`Erro: ${err.message}`, "error");
       setText(clean);

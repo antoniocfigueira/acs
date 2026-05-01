@@ -23,7 +23,7 @@ import { SheetModal, SideDrawer } from "../components/Modal.jsx";
 import { NotificationsButton, NotificationsModal } from "../components/Notifications.jsx";
 import { PostCard } from "../components/PostCard.jsx";
 import { logout, updateMyProfile, useAuthProfile } from "../lib/auth.js";
-import { db } from "../lib/firebase.js";
+import { db, initPush } from "../lib/firebase.js";
 import { routeTo } from "../lib/navigation.js";
 import { uploadMedia } from "../lib/upload.js";
 import { Avatar, Empty, Loading, RoleBadges, StyledName, toast } from "../lib/ui.jsx";
@@ -707,10 +707,18 @@ function SettingsPanel({ user, profile, onClose, onBack, onAdmin }) {
 
   const togglePush = async () => {
     let next = !pushEnabled;
-    if (next && "Notification" in window && Notification.permission !== "granted") {
-      const permission = await Notification.requestPermission();
-      next = permission === "granted";
-      if (!next) toast("Notificacoes nao foram autorizadas", "error");
+    if (next) {
+      if (!("Notification" in window)) {
+        next = false;
+        toast("Este browser nao suporta notificacoes.", "error");
+      } else {
+        const token = await initPush({ user, requestPermission: true });
+        next = !!token;
+        if (next) toast("Push activado", "success");
+        else toast("Nao consegui registar este dispositivo para push.", "error");
+      }
+    } else {
+      toast("Push desactivado");
     }
     setPushEnabled(next);
     try { localStorage.setItem("acs_push_pref_v1", next ? "1" : "0"); } catch {}
@@ -1384,7 +1392,7 @@ function ArchiveEntryEditor({ item, entriesCount, onClose, onSave }) {
   );
 }
 
-export function FeedPage() {
+export function FeedPage({ search = "" }) {
   const { loading: authLoading, user, profile, error } = useAuthProfile({ requireUser: true });
   const [filter, setFilter] = useState(() => localStorage.getItem("alfa_feed_filter") || "global");
   const [modal, setModal] = useState(null);
@@ -1394,6 +1402,10 @@ export function FeedPage() {
   useEffect(() => {
     localStorage.setItem("alfa_feed_filter", filter);
   }, [filter]);
+
+  useEffect(() => {
+    if (new URLSearchParams(search || "").get("notifs") === "1") setModal("notifications");
+  }, [search]);
 
   return (
     <PageFrame page="index.html">

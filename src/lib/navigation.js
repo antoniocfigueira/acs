@@ -1,4 +1,4 @@
-export const ROUTES = new Set(["index.html", "login.html", "chat.html", "dm.html", "news.html", "profile.html"]);
+export const ROUTES = new Set(["index.html", "login.html", "chat.html", "dm.html", "news.html", "profile.html", "games.html"]);
 
 export function basePath() {
   return new URL(import.meta.env.BASE_URL, window.location.origin).pathname;

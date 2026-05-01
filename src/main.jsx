@@ -3,17 +3,19 @@ import { createRoot } from "react-dom/client";
 import { onAuthStateChanged } from "firebase/auth";
 import "./styles.css";
 import { legacyPages } from "./legacy-pages.generated.js";
+import { NotificationRuntime } from "./components/NotificationRuntime.jsx";
 import { ChatPage } from "./pages/ChatPage.jsx";
 import { DMPage } from "./pages/DMPage.jsx";
 import { FeedPage } from "./pages/FeedPage.jsx";
+import { GamesPage } from "./pages/GamesPage.jsx";
 import { LoginPage } from "./pages/LoginPage.jsx";
 import { NewsPage } from "./pages/NewsPage.jsx";
 import { ProfilePage } from "./pages/ProfilePage.jsx";
 import { ensureProfile } from "./lib/auth.js";
-import { auth } from "./lib/firebase.js";
+import { auth, setupPushIfAllowed, writeMessagingSelfUid } from "./lib/firebase.js";
 import { currentRoute, navigateHref, normalizeLocalHref, routeTo } from "./lib/navigation.js";
 
-const PROTECTED_PAGES = new Set(["index.html", "chat.html", "dm.html", "news.html", "profile.html"]);
+const PROTECTED_PAGES = new Set(["index.html", "chat.html", "dm.html", "news.html", "profile.html", "games.html"]);
 const SPLASH_MIN_VISIBLE_MS = 650;
 const splashStartedAt = performance.now();
 
@@ -22,7 +24,8 @@ const SCRIPT_BY_PAGE = {
   "chat.html": "chat.js",
   "dm.html": "dm.js",
   "news.html": "news.js",
-  "profile.html": "profile.js"
+  "profile.html": "profile.js",
+  "games.html": null
 };
 
 const BODY_CLASS_BY_PAGE = {
@@ -31,7 +34,8 @@ const BODY_CLASS_BY_PAGE = {
   "chat.html": "page chat-page",
   "dm.html": "page dm-page",
   "news.html": "page news-page",
-  "profile.html": "page profile-page"
+  "profile.html": "page profile-page",
+  "games.html": "page games-page"
 };
 
 function ensureLegacyRuntime() {
@@ -265,11 +269,14 @@ function App() {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!alive) return;
       if (!user) {
+        writeMessagingSelfUid("").catch(() => {});
         setBoot({ ready: true, user: null, error: null });
         return;
       }
       try {
         await ensureProfile(user);
+        writeMessagingSelfUid(user.uid).catch(() => {});
+        setupPushIfAllowed(user).catch(() => {});
         if (alive) setBoot({ ready: true, user, error: null });
       } catch (err) {
         console.warn("[Alfa React] boot profile failed:", err);
@@ -309,13 +316,21 @@ function App() {
 
   if (!revealed) return null;
 
-  if (route.page === "index.html") return <FeedPage />;
+  const withRuntime = (node) => (
+    <>
+      {boot.user ? <NotificationRuntime user={boot.user} /> : null}
+      {node}
+    </>
+  );
+
+  if (route.page === "index.html") return withRuntime(<FeedPage search={route.search} />);
   if (route.page === "login.html") return <LoginPage />;
-  if (route.page === "chat.html") return <ChatPage search={route.search} />;
-  if (route.page === "dm.html") return <DMPage search={route.search} />;
-  if (route.page === "news.html") return <NewsPage />;
-  if (route.page === "profile.html") return <ProfilePage search={route.search} />;
-  return <LegacyPage page={route.page} search={route.search} />;
+  if (route.page === "chat.html") return withRuntime(<ChatPage search={route.search} />);
+  if (route.page === "dm.html") return withRuntime(<DMPage search={route.search} />);
+  if (route.page === "news.html") return withRuntime(<NewsPage />);
+  if (route.page === "profile.html") return withRuntime(<ProfilePage search={route.search} />);
+  if (route.page === "games.html") return withRuntime(<GamesPage />);
+  return withRuntime(<LegacyPage page={route.page} search={route.search} />);
 }
 
 async function runLoginController() {

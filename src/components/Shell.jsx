@@ -9,10 +9,11 @@ export function PageFrame({ page, children, threadOpen = false }) {
       "index.html": "page feed-page",
       "login.html": "page login-page",
       "chat.html": "page chat-page",
-      "dm.html": "page dm-page"
+      "dm.html": "page dm-page",
+      "games.html": "page games-page"
     }[page] || "page";
     document.body.className = `${bodyClass}${threadOpen ? " dm-thread-open" : ""}`;
-    document.title = page === "chat.html" ? "Chat Global" : page === "dm.html" ? "Mensagens" : "Alfa Club";
+    document.title = page === "chat.html" ? "Chat Global" : page === "dm.html" ? "Mensagens" : page === "games.html" ? "Jogos" : "Alfa Club";
     return () => {
       document.body.className = "page";
     };
@@ -122,13 +123,13 @@ export function BottomNav({ active }) {
         <MessageCircle size={22} />
       </NavLink>
       <a
-        href={hrefFor("index.html", "", "#create")}
-        className="create"
-        aria-label="Criar post"
+        href={hrefFor("games.html")}
+        className={`create ${active === "games.html" ? "active" : ""}`.trim()}
+        aria-label="Jogos"
         style={{ "--fab-phase": fabPhase }}
         onClick={(event) => {
           event.preventDefault();
-          routeTo("index.html", "", "#create");
+          routeTo("games.html");
         }}
       >
         <Plus size={22} />

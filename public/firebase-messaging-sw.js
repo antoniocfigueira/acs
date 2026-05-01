@@ -13,6 +13,15 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
+const APP_BASE = self.registration.scope.replace(/firebase-cloud-messaging-push-scope\/?$/, "");
+
+function appUrl(raw) {
+  try {
+    return new URL(raw || "./index.html", APP_BASE).href;
+  } catch {
+    return new URL("./index.html", APP_BASE).href;
+  }
+}
 
 // Activate immediately so we don't have to wait for reload before the SW takes over.
 self.addEventListener("install", () => { self.skipWaiting(); });
@@ -83,7 +92,7 @@ messaging.onBackgroundMessage(async (payload) => {
       badge: "./icons/icon-192.png",
       tag,
       renotify: false,
-      data: { url: data.url || data.click_action || n.click_action || "./index.html", ...data },
+      data: { url: appUrl(data.url || data.click_action || n.click_action || "./index.html"), ...data },
       vibrate: [50, 30, 50]
     };
     self.registration.showNotification(title, options);
@@ -116,7 +125,7 @@ self.addEventListener("push", (event) => {
 // When the user taps the notification, focus an existing tab or open a new one.
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || "./index.html";
+  const targetUrl = appUrl(event.notification.data && event.notification.data.url);
   event.waitUntil((async () => {
     const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     for (const client of allClients) {
