@@ -251,7 +251,6 @@ function App() {
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
-    installTapRipple();
     registerAppServiceWorker();
     try {
       const theme = localStorage.getItem("acs_theme_v1") || "dark";

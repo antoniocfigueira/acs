@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   addDoc,
   arrayUnion,
@@ -461,6 +462,9 @@ function StoryViewer({ stories, user, onClose }) {
     return () => window.clearInterval(interval);
   }, [index]);
   if (!story) return null;
+  const mediaURL = story.mediaURL || story.mediaUrl || story.media || story.imageUrl || story.imageURL || story.videoUrl || story.videoURL || story.url || "";
+  const mediaType = story.mediaType || story.type || (/\.(mp4|webm|mov)(\?|$)/i.test(mediaURL) ? "video" : mediaURL ? "image" : "");
+  const storyText = story.text || story.caption || story.body || "";
   const deleteStory = async () => {
     if (!confirm("Apagar esta story?")) return;
     try {
@@ -470,8 +474,8 @@ function StoryViewer({ stories, user, onClose }) {
       toast(`Erro: ${err.message}`, "error");
     }
   };
-  return (
-    <div className="story-viewer-react" style={{ position: "fixed", inset: 0, zIndex: 220, background: "rgba(0,0,0,.92)", display: "grid", placeItems: "center" }} onClick={next}>
+  return createPortal(
+    <div className="story-viewer-react" onClick={next}>
       <div className="story-progress" aria-hidden="true">
         {stories.map((item, itemIndex) => (
           <span key={item.id || itemIndex}>
@@ -485,13 +489,16 @@ function StoryViewer({ stories, user, onClose }) {
           <X size={22} />
         </button>
       </div>
-      {story.mediaURL ? (
-        story.mediaType === "video" ? <video src={story.mediaURL} controls autoPlay style={{ maxWidth: "100vw", maxHeight: "86vh" }} /> : <img src={story.mediaURL} alt="" style={{ maxWidth: "100vw", maxHeight: "86vh", objectFit: "contain" }} />
+      <div className="story-stage" onClick={(event) => event.stopPropagation()}>
+      {mediaURL ? (
+        mediaType === "video" ? <video className="story-media-el" src={mediaURL} controls autoPlay playsInline /> : <img className="story-media-el" src={mediaURL} alt="" />
       ) : (
-        <div className="story-text-only">{story.text || "Story"}</div>
+        <div className="story-text-only">{storyText || "Story"}</div>
       )}
-      {story.mediaURL && story.text ? <div style={{ position: "absolute", left: 20, right: 20, bottom: "calc(28px + env(safe-area-inset-bottom))", textAlign: "center", color: "white", fontWeight: 700, fontSize: 20, textShadow: "0 2px 12px rgba(0,0,0,.9)", whiteSpace: "pre-wrap" }}>{story.text}</div> : null}
-    </div>
+      </div>
+      {mediaURL && storyText ? <div className="story-caption">{storyText}</div> : null}
+    </div>,
+    document.body
   );
 }
 
