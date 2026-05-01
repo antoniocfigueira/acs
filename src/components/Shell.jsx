@@ -1,6 +1,9 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { collection, limit as fsLimit, onSnapshot, query, where } from "firebase/firestore";
 import { Bell, Home, MessageCircle, Newspaper, Power, Send, User, Users } from "lucide-react";
 import { legacyPages } from "../legacy-pages.generated.js";
+import { auth, db } from "../lib/firebase.js";
 import { hrefFor, navigateHref, routeTo } from "../lib/navigation.js";
 
 export function PageFrame({ page, children, threadOpen = false }) {
@@ -95,7 +98,31 @@ export function AppHeader({ title, subtitle, right, children }) {
   );
 }
 
-function NavLink({ page, active, label, children, className = "" }) {
+function useDmUnreadCount() {
+  const [uid, setUid] = useState(auth.currentUser?.uid || "");
+  const [count, setCount] = useState(0);
+
+  useEffect(() => onAuthStateChanged(auth, (user) => setUid(user?.uid || "")), []);
+
+  useEffect(() => {
+    if (!uid) {
+      setCount(0);
+      return undefined;
+    }
+    const q = query(collection(db, "chats"), where("participants", "array-contains", uid), fsLimit(100));
+    return onSnapshot(q, (snap) => {
+      let total = 0;
+      snap.forEach((item) => {
+        total += item.data()?.[`unread_${uid}`] || 0;
+      });
+      setCount(total);
+    }, () => setCount(0));
+  }, [uid]);
+
+  return count;
+}
+
+function NavLink({ page, active, label, children, className = "", badge = 0 }) {
   return (
     <a
       href={hrefFor(page)}
@@ -107,6 +134,7 @@ function NavLink({ page, active, label, children, className = "" }) {
       }}
     >
       {children}
+      {badge ? <span className="nav-unread-dot" aria-hidden="true" /> : null}
       <span>{label}</span>
     </a>
   );
@@ -114,12 +142,13 @@ function NavLink({ page, active, label, children, className = "" }) {
 
 export function BottomNav({ active }) {
   const fabPhase = `${-((Date.now() % 10000) / 1000)}s`;
+  const dmUnread = useDmUnreadCount();
   return (
     <nav className="bottom-nav">
       <NavLink page="index.html" active={active === "index.html"} label="Inicio">
         <Home size={22} />
       </NavLink>
-      <NavLink page="dm.html" active={active === "dm.html"} label="DMs">
+      <NavLink page="dm.html" active={active === "dm.html"} label="DMs" badge={dmUnread}>
         <MessageCircle size={22} />
       </NavLink>
       <a

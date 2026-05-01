@@ -33,8 +33,12 @@ const SHOP_ITEMS = [
   { id: "color_cyan", unlockField: "unlockedNameColors", unlockValue: "#22d3ee", name: "Cor Azul", sub: "Nome em azul", price: 50, preview: <span className="name-sample" style={{ color: "#22d3ee" }}>Nome</span>, apply: { nameColor: "#22d3ee" } },
   { id: "color_pink", unlockField: "unlockedNameColors", unlockValue: "#ec4899", name: "Cor Rosa", sub: "Nome em rosa", price: 50, preview: <span className="name-sample" style={{ color: "#ec4899" }}>Nome</span>, apply: { nameColor: "#ec4899" } },
   { id: "color_green", unlockField: "unlockedNameColors", unlockValue: "#22c55e", name: "Cor Verde", sub: "Nome em verde", price: 50, preview: <span className="name-sample" style={{ color: "#22c55e" }}>Nome</span>, apply: { nameColor: "#22c55e" } },
+  { id: "color_red", unlockField: "unlockedNameColors", unlockValue: "#ef4444", name: "Cor Vermelha", sub: "Nome em vermelho", price: 50, preview: <span className="name-sample" style={{ color: "#ef4444" }}>Nome</span>, apply: { nameColor: "#ef4444" } },
+  { id: "color_purple", unlockField: "unlockedNameColors", unlockValue: "#a855f7", name: "Cor Roxa", sub: "Nome em roxo", price: 50, preview: <span className="name-sample" style={{ color: "#a855f7" }}>Nome</span>, apply: { nameColor: "#a855f7" } },
+  { id: "color_orange", unlockField: "unlockedNameColors", unlockValue: "#f97316", name: "Cor Laranja", sub: "Nome em laranja", price: 50, preview: <span className="name-sample" style={{ color: "#f97316" }}>Nome</span>, apply: { nameColor: "#f97316" } },
   { id: "color_gold", unlockField: "unlockedNameStyles", unlockValue: "gold", name: "Dourado especial", sub: "Cor dourada com glow", price: 50, preview: <span className="name-sample name-gold">Nome</span>, apply: { nameStyle: "gold" } },
   { id: "grad_anim", unlockField: "unlockedNameStyles", unlockValue: "grad", name: "Degrade animado", sub: "Nome com gradiente animado", price: 30, preview: <span className="name-sample name-grad-anim">Nome</span>, apply: { nameStyle: "grad" } },
+  { id: "glow_name", unlockField: "unlockedNameStyles", unlockValue: "glow", name: "Glow", sub: "Nome com brilho da tua cor", price: 50, preview: <span className="name-sample name-glow" style={{ "--name-glow-base": "#ec4899" }}>Nome</span>, apply: { nameStyle: "glow" } },
   { id: "reset_color", name: "Remover modificacoes", sub: "Voltar a cor padrao", price: 0, preview: <span className="name-sample">Nome</span>, apply: { nameColor: null, nameStyle: null } },
   { id: "change_user", name: "Mudar @username", sub: "Escolher um novo @", price: 300, preview: <span style={{ fontWeight: 700 }}>@</span>, action: "changeUsername" },
   { id: "timeout_user", name: "Timeout 24h", sub: "Silenciar um user 24h", price: 50, preview: <span style={{ fontWeight: 700, opacity: 0.7 }}>mute</span>, action: "timeoutUser" }
@@ -104,7 +108,7 @@ function usePosts(user, profile, filter, refreshKey = 0) {
 function useStories(refreshKey = 0) {
   const [stories, setStories] = useState([]);
   useEffect(() => {
-    const q = query(collection(db, "stories"), orderBy("createdAt", "desc"), fsLimit(50));
+    const q = query(collection(db, "stories"), orderBy("createdAt", "asc"), fsLimit(50));
     return onSnapshot(q, (snap) => {
       const now = Date.now();
       const rows = [];
@@ -133,6 +137,25 @@ function useRoles(enabled = true) {
     }, () => setRoles([]));
   }, [enabled]);
   return roles;
+}
+
+function useDmUnread(user) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!user?.uid) {
+      setCount(0);
+      return undefined;
+    }
+    const q = query(collection(db, "chats"), where("participants", "array-contains", user.uid), fsLimit(100));
+    return onSnapshot(q, (snap) => {
+      let total = 0;
+      snap.forEach((item) => {
+        total += item.data()?.[`unread_${user.uid}`] || 0;
+      });
+      setCount(total);
+    }, () => setCount(0));
+  }, [user?.uid]);
+  return count;
 }
 
 function itemIsUnlocked(profile, item) {
@@ -254,8 +277,8 @@ function PollToolIcon() {
   return (
     <svg className="poll-tool-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <rect x="5" y="13" width="2.7" height="6.5" rx="1.35" fill="currentColor" />
-      <rect x="10.65" y="7.5" width="2.7" height="12" rx="1.35" fill="currentColor" />
-      <rect x="16.3" y="3.8" width="2.7" height="15.7" rx="1.35" fill="currentColor" />
+      <rect x="10.65" y="3.8" width="2.7" height="15.7" rx="1.35" fill="currentColor" />
+      <rect x="16.3" y="7.5" width="2.7" height="12" rx="1.35" fill="currentColor" />
     </svg>
   );
 }
@@ -407,12 +430,26 @@ function StoryCreateModal({ fileRef, onClose, onCreate }) {
 
 function StoryViewer({ stories, user, onClose }) {
   const [index, setIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
   const story = stories[index] || stories[0];
-  if (!story) return null;
   const next = () => {
     if (index >= stories.length - 1) onClose();
     else setIndex((i) => i + 1);
   };
+  useEffect(() => {
+    setProgress(0);
+    const startedAt = Date.now();
+    const interval = window.setInterval(() => {
+      const value = Math.min(1, (Date.now() - startedAt) / 5000);
+      setProgress(value);
+      if (value >= 1) {
+        window.clearInterval(interval);
+        next();
+      }
+    }, 60);
+    return () => window.clearInterval(interval);
+  }, [index]);
+  if (!story) return null;
   const deleteStory = async () => {
     if (!confirm("Apagar esta story?")) return;
     try {
@@ -424,6 +461,13 @@ function StoryViewer({ stories, user, onClose }) {
   };
   return (
     <div className="story-viewer-react" style={{ position: "fixed", inset: 0, zIndex: 220, background: "rgba(0,0,0,.92)", display: "grid", placeItems: "center" }} onClick={next}>
+      <div className="story-progress" aria-hidden="true">
+        {stories.map((item, itemIndex) => (
+          <span key={item.id || itemIndex}>
+            <i style={{ transform: `scaleX(${itemIndex < index ? 1 : itemIndex === index ? progress : 0})` }} />
+          </span>
+        ))}
+      </div>
       <button className="icon-btn tap story-viewer-close" type="button" aria-label="Fechar" onClick={(event) => { event.stopPropagation(); onClose(); }}>
         <X size={22} />
       </button>
@@ -819,7 +863,8 @@ function DrawerIcon({ children, className = "" }) {
   return <span className={`icon-wrap ${className}`.trim()}>{children}</span>;
 }
 
-function FeedMenu({ onClose, onSearch, onRanking, onShop, onBugs, onArchive, onSettings, onAdmin, profile }) {
+function FeedMenu({ onClose, onSearch, onRanking, onShop, onBugs, onArchive, onSettings, onAdmin, user, profile }) {
+  const dmUnread = useDmUnread(user);
   const open = (fn) => {
     fn();
   };
@@ -862,6 +907,7 @@ function FeedMenu({ onClose, onSearch, onRanking, onShop, onBugs, onArchive, onS
           <button className="drawer-item w-full dm-item" style={{ "--drawer-item-index": 2 }} type="button" onClick={() => { onClose(); routeTo("dm.html"); }}>
             <DrawerIcon><Mail size={18} /></DrawerIcon>
             <span className="drawer-label">Mensagens Privadas</span>
+            {dmUnread ? <span className="drawer-unread-dot" aria-hidden="true" /> : null}
           </button>
           <button className="drawer-item w-full" style={{ "--drawer-item-index": 3 }} type="button" onClick={() => open(onRanking)}>
             <DrawerIcon className="star-wrap"><Star size={18} fill="#fde047" stroke="#facc15" /></DrawerIcon>
@@ -1546,9 +1592,9 @@ export function FeedPage({ search = "" }) {
       {modal === "bugs" && user && profile ? <BugReportModal user={user} profile={profile} onClose={() => setModal(null)} /> : null}
       {modal === "notifications" && user ? <NotificationsModal user={user} onClose={() => setModal(null)} /> : null}
       {modal === "archive" && user && profile ? <ArchiveModal user={user} profile={profile} onClose={() => setModal(null)} onBack={() => setModal("menu")} /> : null}
-      {modal === "settings" && user && profile ? <SettingsPanel user={user} profile={profile} onClose={() => setModal(null)} onBack={() => setModal("menu")} onAdmin={() => setModal("admin")} /> : null}
+      {(modal === "settings" || modal === "settings-menu") && user && profile ? <SettingsPanel user={user} profile={profile} onClose={() => setModal(null)} onBack={() => setModal(modal === "settings-menu" ? "menu" : null)} onAdmin={() => setModal("admin")} /> : null}
       {modal === "admin" ? <AdminPanelModal onClose={() => setModal(null)} /> : null}
-      {modal === "menu" ? <FeedMenu onClose={() => setModal(null)} onSearch={() => setModal("search")} onRanking={() => setModal("ranking")} onShop={() => setModal("shop")} onBugs={() => setModal("bugs")} onArchive={() => setModal("archive")} onSettings={() => setModal("settings")} onAdmin={() => setModal("admin")} profile={profile} /> : null}
+      {modal === "menu" ? <FeedMenu onClose={() => setModal(null)} onSearch={() => setModal("search")} onRanking={() => setModal("ranking")} onShop={() => setModal("shop")} onBugs={() => setModal("bugs")} onArchive={() => setModal("archive")} onSettings={() => setModal("settings-menu")} onAdmin={() => setModal("admin")} user={user} profile={profile} /> : null}
     </PageFrame>
   );
 }

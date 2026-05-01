@@ -130,9 +130,12 @@ function EditProfileModal({ profile, onClose }) {
     "": "Padrao",
     "#22d3ee": "Azul",
     "#ec4899": "Rosa",
-    "#22c55e": "Verde"
+    "#22c55e": "Verde",
+    "#ef4444": "Vermelho",
+    "#a855f7": "Roxo",
+    "#f97316": "Laranja"
   })[value] || value;
-  const styleLabel = (value) => ({ "": "Sem efeito", gold: "Dourado", grad: "Gradiente" })[value] || value;
+  const styleLabel = (value) => ({ "": "Sem efeito", gold: "Dourado", grad: "Gradiente", glow: "Glow" })[value] || value;
   const themeLabel = (value) => ({
     "": "Sem tema",
     flames: "Chamas",

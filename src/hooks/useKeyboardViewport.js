@@ -22,14 +22,8 @@ export function useKeyboardViewport({ enabled = true, scrollRef } = {}) {
       const keyboardDelta = Math.max(kbHeight, maxViewportHeight - visualH);
       const keyboardOpen = isMobileLike() && keyboardDelta > 80 && isTextEntryFocused();
       document.body.classList.toggle("keyboard-open", keyboardOpen);
-      document.documentElement.style.setProperty("--alfa-viewport-height", `${Math.round(visualH)}px`);
-      if (keyboardOpen) {
-        document.body.style.height = `${visualH}px`;
-        document.body.style.minHeight = `${visualH}px`;
-      } else {
-        document.body.style.height = "";
-        document.body.style.minHeight = "";
-      }
+      document.documentElement.style.setProperty("--alfa-viewport-height", `${Math.round(maxViewportHeight)}px`);
+      document.documentElement.style.setProperty("--keyboard-inset", `${Math.round(keyboardOpen ? keyboardDelta : 0)}px`);
       if (offsetTop !== 0) window.scrollTo(0, 0);
     };
 
@@ -37,6 +31,7 @@ export function useKeyboardViewport({ enabled = true, scrollRef } = {}) {
       document.body.classList.remove("keyboard-open");
       document.body.style.height = "";
       document.body.style.minHeight = "";
+      document.documentElement.style.setProperty("--keyboard-inset", "0px");
       const fullHeight = Math.max(
         maxViewportHeight,
         window.innerHeight || 0,
@@ -124,6 +119,7 @@ export function useKeyboardViewport({ enabled = true, scrollRef } = {}) {
       document.body.style.height = "";
       document.body.style.minHeight = "";
       document.documentElement.style.removeProperty("--alfa-viewport-height");
+      document.documentElement.style.removeProperty("--keyboard-inset");
     };
   }, [enabled, scrollRef]);
 }

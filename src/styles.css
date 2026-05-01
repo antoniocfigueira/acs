@@ -3,6 +3,8 @@
 :root {
   --ripple-a: rgba(236, 72, 153, .35);
   --ripple-b: rgba(139, 92, 246, 0);
+  --bottom-nav-height: calc(62px + env(safe-area-inset-bottom));
+  --keyboard-inset: 0px;
 }
 
 html,
@@ -63,16 +65,15 @@ body.dm-page .bottom-nav {
 body.chat-page .chat-footer {
   margin-bottom: 0 !important;
   padding: 10px 12px !important;
-  position: relative;
-  z-index: 8;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: max(var(--bottom-nav-height), var(--keyboard-inset));
+  z-index: 45;
   border-top: 1px solid var(--border);
   background: rgba(10, 10, 10, .86);
   backdrop-filter: blur(12px) saturate(160%);
   -webkit-backdrop-filter: blur(12px) saturate(160%);
-}
-
-body.dm-page.keyboard-open .bottom-nav {
-  display: none !important;
 }
 
 body.chat-page.keyboard-open .chat-footer,
@@ -81,8 +82,8 @@ body.dm-page.keyboard-open .dm-footer {
 }
 
 body.chat-page .chat-wrap {
-  padding-bottom: 18px !important;
-  scroll-padding-bottom: 18px;
+  padding-bottom: calc(86px + max(var(--bottom-nav-height), var(--keyboard-inset))) !important;
+  scroll-padding-bottom: calc(86px + max(var(--bottom-nav-height), var(--keyboard-inset)));
 }
 
 body.chat-page .chat-input {
@@ -262,11 +263,22 @@ body.dm-page.dm-thread-open [data-react-page] {
 body.dm-page.dm-thread-open .thread-wrap {
   flex: 1 1 auto;
   min-height: 0;
+  padding-bottom: calc(76px + max(var(--bottom-nav-height), var(--keyboard-inset))) !important;
+  scroll-padding-bottom: calc(76px + max(var(--bottom-nav-height), var(--keyboard-inset)));
 }
 
 body.dm-page.dm-thread-open .dm-footer {
   margin-bottom: 0 !important;
-  padding: 10px 12px calc(10px + env(safe-area-inset-bottom)) !important;
+  padding: 10px 12px !important;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: max(var(--bottom-nav-height), var(--keyboard-inset));
+  z-index: 45;
+  border-top: 1px solid var(--border);
+  background: rgba(10, 10, 10, .86);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
 }
 
 body.dm-page.dm-thread-open .dm-input {
@@ -2498,4 +2510,237 @@ html[data-theme="steampunk"] .sheet-modal-panel {
 
 html[data-theme="steampunk"] .sheet-modal-panel > div:first-child {
   background: rgba(214,177,95,.34) !important;
+}
+
+body.chat-page.keyboard-open .bottom-nav,
+body.dm-page.keyboard-open .bottom-nav {
+  display: grid !important;
+  transform: translate3d(0, var(--keyboard-inset), 0) !important;
+}
+
+.nav-unread-dot,
+.drawer-unread-dot {
+  display: block !important;
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ec4899;
+  box-shadow: 0 0 0 2px rgba(10,10,10,.9), 0 0 10px rgba(236,72,153,.65);
+}
+
+.nav-unread-dot {
+  top: 9px;
+  right: 13px;
+  z-index: 4;
+}
+
+.drawer-unread-dot {
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.feed-filter-btn.active {
+  box-shadow: none !important;
+}
+
+.feed-filter-btn.has-local-ripple,
+.action-btn.has-local-ripple,
+.btn-ghost.has-local-ripple,
+.btn-primary.has-local-ripple,
+.icon-btn.has-local-ripple {
+  box-shadow: inherit;
+}
+
+.msg-media {
+  display: block;
+  width: min(230px, 62vw);
+  max-height: 280px;
+  border-radius: 16px;
+  object-fit: cover;
+}
+
+.media-actions-row .btn-primary {
+  width: 100%;
+  padding: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.dm-tool-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: #1a1a1a;
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.story-progress {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: calc(12px + env(safe-area-inset-top));
+  display: flex;
+  gap: 5px;
+  z-index: 6;
+}
+
+.story-progress span {
+  height: 3px;
+  flex: 1;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255,255,255,.28);
+}
+
+.story-progress i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  background: rgba(255,255,255,.9);
+}
+
+.story-viewer-react .story-viewer-close {
+  top: calc(22px + env(safe-area-inset-top)) !important;
+}
+
+.story-viewer-react .story-viewer-delete {
+  top: calc(26px + env(safe-area-inset-top)) !important;
+}
+
+.shop-content-modern {
+  max-height: min(68vh, 620px);
+  overflow-y: auto;
+}
+
+.shop-points-card {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+}
+
+.shop-buy-btn {
+  min-width: 82px;
+  min-height: 36px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 14px;
+  color: white;
+  font-size: 12px;
+  font-weight: 900;
+  background: var(--grad);
+  box-shadow: 0 10px 22px -12px rgba(236,72,153,.9);
+}
+
+.shop-buy-btn:disabled {
+  color: var(--muted);
+  background: rgba(255,255,255,.065);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.name-glow {
+  --name-glow-base: #ec4899;
+  text-shadow:
+    0 0 5px color-mix(in srgb, var(--name-glow-base) 82%, white),
+    0 0 14px var(--name-glow-base),
+    0 0 24px color-mix(in srgb, var(--name-glow-base) 60%, transparent);
+}
+
+.role-info-backdrop {
+  animation: roleBackdropIn .18s ease-out both;
+}
+
+.role-info-card {
+  animation: roleCardIn .24s cubic-bezier(.2,.9,.2,1) both;
+}
+
+@keyframes roleBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes roleCardIn {
+  from { opacity: 0; transform: translateY(10px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+html[data-theme="steampunk"] .composer textarea {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+html[data-theme="steampunk"] .post,
+html[data-theme="steampunk"] .composer.card,
+html[data-theme="steampunk"] .card {
+  background: rgba(22, 14, 8, .38) !important;
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+}
+
+html[data-theme="steampunk"] .drawer-item,
+html[data-theme="steampunk"] .icon-btn,
+html[data-theme="steampunk"] .drawer-item .icon-wrap,
+html[data-theme="steampunk"] .btn-ghost {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="steampunk"] .drawer-item {
+  border-color: transparent !important;
+}
+
+html[data-theme="steampunk"] .btn-primary,
+html[data-theme="steampunk"] .shop-buy-btn {
+  background: linear-gradient(135deg, #6f4625, #b88945 52%, #c8a767) !important;
+}
+
+html[data-theme="steampunk"] body::before {
+  background:
+    radial-gradient(ellipse 900px 520px at 18% -12%, rgba(126, 83, 42, .2), transparent 58%),
+    radial-gradient(ellipse 700px 420px at 104% 12%, rgba(38, 86, 78, .12), transparent 55%),
+    linear-gradient(180deg, #110c08 0%, #090705 100%) !important;
+}
+
+html[data-theme="steampunk"] body::after {
+  background:
+    repeating-linear-gradient(90deg, transparent 0 58px, rgba(181,130,58,.035) 58px 59px),
+    repeating-linear-gradient(0deg, transparent 0 58px, rgba(181,130,58,.025) 58px 59px),
+    radial-gradient(circle at 14% 20%, transparent 0 38px, rgba(153,103,49,.11) 39px 40px, transparent 41px),
+    radial-gradient(circle at 86% 76%, transparent 0 52px, rgba(53,107,95,.08) 53px 54px, transparent 55px) !important;
+  opacity: .7 !important;
+}
+
+.alfa-jump-icon .jump-character {
+  background:
+    radial-gradient(circle at 34% 38%, #1b1b1b 0 3px, transparent 3.3px),
+    radial-gradient(circle at 66% 38%, #1b1b1b 0 3px, transparent 3.3px),
+    radial-gradient(circle at 50% 54%, transparent 0 7px, #1b1b1b 7.2px 8.4px, transparent 8.6px),
+    radial-gradient(circle at 36% 28%, #fff6a0 0%, #ffd54a 42%, #f59e0b 100%) !important;
+  box-shadow: 0 0 18px rgba(245,158,11,.38) !important;
+}
+
+.art-character {
+  background:
+    radial-gradient(circle at 34% 38%, #1b1b1b 0 3px, transparent 3.3px),
+    radial-gradient(circle at 66% 38%, #1b1b1b 0 3px, transparent 3.3px),
+    radial-gradient(circle at 50% 54%, transparent 0 9px, #1b1b1b 9.2px 11px, transparent 11.2px),
+    radial-gradient(circle at 36% 28%, #fff6a0 0%, #ffd54a 42%, #f59e0b 100%) !important;
+  box-shadow: 0 18px 38px rgba(245,158,11,.28) !important;
+}
+
+.art-character span,
+.art-character::before,
+.art-character::after {
+  display: none !important;
 }

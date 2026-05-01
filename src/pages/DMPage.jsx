@@ -17,13 +17,14 @@ import {
   where
 } from "firebase/firestore";
 import { onValue as rtOnValue, ref as rtRef } from "firebase/database";
-import { Edit3, Trash2 } from "lucide-react";
+import { Edit3, Gamepad2, Image as ImageIcon, Smile, Trash2, Upload } from "lucide-react";
 import { AppHeader, BottomNav, GradientDefs, HeaderNewDmButton, PageFrame, SendIcon } from "../components/Shell.jsx";
 import { SheetModal } from "../components/Modal.jsx";
 import { useKeyboardViewport } from "../hooks/useKeyboardViewport.js";
 import { markLegacyDmNotificationsRead, useAuthProfile } from "../lib/auth.js";
 import { db, rtdb } from "../lib/firebase.js";
 import { routeTo } from "../lib/navigation.js";
+import { uploadMedia } from "../lib/upload.js";
 import { Avatar, buildDmChatId, Empty, Loading, RoleBadges, StyledName, timeAgo, toast } from "../lib/ui.jsx";
 
 function useOnlineUids() {
@@ -119,7 +120,7 @@ function DMMessage({ message, other, user, profile, chatId }) {
   const [editing, setEditing] = useState(false);
   const mine = message.uid === user.uid;
   const canDelete = mine || profile?.isAdmin;
-  const canEdit = mine || profile?.isAdmin;
+  const canEdit = (mine || profile?.isAdmin) && (!message.type || message.type === "text");
 
   const deleteMessage = async () => {
     if (!confirm("Apagar esta mensagem?")) return;
@@ -156,7 +157,15 @@ function DMMessage({ message, other, user, profile, chatId }) {
       </div>
       <div>
         <div className="msg-bubble">
-          <span className="msg-text">{message.text || ""}</span>
+          {message.type === "sticker" && message.stickerUrl ? (
+            <img src={message.stickerUrl} alt="sticker" style={{ display: "block", width: 120, height: 120, objectFit: "contain" }} />
+          ) : message.type === "image" && message.mediaURL ? (
+            <img className="msg-media" src={message.mediaURL} alt="" loading="lazy" />
+          ) : message.type === "video" && message.mediaURL ? (
+            <video className="msg-media" src={message.mediaURL} controls playsInline />
+          ) : (
+            <span className="msg-text">{message.text || ""}</span>
+          )}
           {canEdit ? (
             <button className="msg-edit-btn" type="button" aria-label="Editar mensagem" title="Editar" onClick={editMessage}>
               <Edit3 size={13} />
@@ -187,11 +196,84 @@ function DmMessageEditModal({ initial, onClose, onSave }) {
   );
 }
 
+function DmMediaPicker({ user, profile, onSendMedia, onSendSticker, onClose }) {
+  const [stickers, setStickers] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const mediaRef = useRef(null);
+  const stickerRef = useRef(null);
+
+  useEffect(() => {
+    const q = query(collection(db, "stickers"), orderBy("createdAt", "desc"), fsLimit(80));
+    return onSnapshot(q, (snap) => setStickers(snap.docs.map((item) => ({ id: item.id, ...item.data() }))));
+  }, []);
+
+  const sendFile = async (file) => {
+    if (!file) return;
+    setBusy(true);
+    try {
+      const up = await uploadMedia(file);
+      await onSendMedia(up);
+      onClose();
+    } catch (err) {
+      toast(`Erro: ${err.message}`, "error");
+    } finally {
+      setBusy(false);
+      if (mediaRef.current) mediaRef.current.value = "";
+    }
+  };
+
+  const addSticker = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast("So imagens!", "error");
+      return;
+    }
+    setBusy(true);
+    try {
+      const up = await uploadMedia(file);
+      await addDoc(collection(db, "stickers"), {
+        url: up.url,
+        uploadedBy: user.uid,
+        uploadedByName: profile.name || "",
+        createdAt: serverTimestamp()
+      });
+      toast("Sticker adicionado", "success");
+    } catch (err) {
+      toast(`Erro: ${err.message}`, "error");
+    } finally {
+      setBusy(false);
+      if (stickerRef.current) stickerRef.current.value = "";
+    }
+  };
+
+  return (
+    <SheetModal title="Media" onClose={onClose}>
+      <input ref={mediaRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={(event) => sendFile(event.target.files?.[0])} />
+      <button className="btn-primary tap" type="button" style={{ width: "100%", padding: 10 }} disabled={busy} onClick={() => mediaRef.current?.click()}>
+        <ImageIcon size={16} /> Enviar foto/video
+      </button>
+      <div className="settings-title" style={{ margin: "14px 0 8px" }}>Stickers</div>
+      <div className="sticker-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(90px,1fr))", gap: 8, maxHeight: 300, overflowY: "auto" }}>
+        {stickers.map((sticker) => (
+          <button key={sticker.id} className="sticker-pick tap" type="button" style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 12, padding: 4 }} onClick={() => { onSendSticker(sticker.url); onClose(); }}>
+            <img src={sticker.url} alt="" style={{ width: 80, height: 80, objectFit: "contain", display: "block" }} />
+          </button>
+        ))}
+      </div>
+      <input ref={stickerRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(event) => addSticker(event.target.files?.[0])} />
+      <button className="btn-ghost tap" type="button" style={{ width: "100%", marginTop: 12, padding: 10 }} disabled={busy} onClick={() => stickerRef.current?.click()}>
+        <Upload size={16} /> Carregar sticker
+      </button>
+    </SheetModal>
+  );
+}
+
 function Thread({ chatId, otherUid, user, profile, onOtherLoaded }) {
   const [other, setOther] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
+  const [mediaOpen, setMediaOpen] = useState(false);
   const wrapRef = useRef(null);
   const inputRef = useRef(null);
   useKeyboardViewport({ enabled: true, scrollRef: wrapRef });
@@ -261,6 +343,8 @@ function Thread({ chatId, otherUid, user, profile, onOtherLoaded }) {
       });
       await updateDoc(doc(db, "chats", chatId), {
         lastMessage: clean.slice(0, 80),
+        lastMessageFrom: profile.name || profile.username || "Alguem",
+        lastMessageFromUid: user.uid,
         lastAt: serverTimestamp(),
         [`unread_${otherUid}`]: increment(1),
         [`unread_${user.uid}`]: 0
@@ -270,6 +354,45 @@ function Thread({ chatId, otherUid, user, profile, onOtherLoaded }) {
       toast(`Erro ao enviar: ${err.message}`, "error");
       setText(clean);
     }
+  };
+
+  const sendMedia = async (media) => {
+    if (!media?.url) return;
+    const mediaType = media.type === "video" ? "video" : "image";
+    await addDoc(collection(db, "chats", chatId, "messages"), {
+      uid: user.uid,
+      name: profile.name,
+      type: mediaType,
+      mediaURL: media.url,
+      at: serverTimestamp()
+    });
+    await updateDoc(doc(db, "chats", chatId), {
+      lastMessage: mediaType === "video" ? "Video" : "Foto",
+      lastMessageFrom: profile.name || profile.username || "Alguem",
+      lastMessageFromUid: user.uid,
+      lastAt: serverTimestamp(),
+      [`unread_${otherUid}`]: increment(1),
+      [`unread_${user.uid}`]: 0
+    });
+  };
+
+  const sendSticker = async (stickerUrl) => {
+    if (!stickerUrl) return;
+    await addDoc(collection(db, "chats", chatId, "messages"), {
+      uid: user.uid,
+      name: profile.name,
+      type: "sticker",
+      stickerUrl,
+      at: serverTimestamp()
+    });
+    await updateDoc(doc(db, "chats", chatId), {
+      lastMessage: "Sticker",
+      lastMessageFrom: profile.name || profile.username || "Alguem",
+      lastMessageFromUid: user.uid,
+      lastAt: serverTimestamp(),
+      [`unread_${otherUid}`]: increment(1),
+      [`unread_${user.uid}`]: 0
+    });
   };
 
   return (
@@ -311,10 +434,17 @@ function Thread({ chatId, otherUid, user, profile, onOtherLoaded }) {
             }
           }}
         />
+        <button className="dm-tool-btn tap" type="button" aria-label="Jogos" title="Jogos" onClick={() => routeTo("games.html")}>
+          <Gamepad2 size={21} />
+        </button>
+        <button className="dm-tool-btn tap" type="button" aria-label="Media" title="Media" onClick={() => setMediaOpen(true)}>
+          <ImageIcon size={21} />
+        </button>
         <button className="dm-send" type="button" disabled={!text.trim()} aria-label="Enviar" onPointerDown={(event) => { event.preventDefault(); send(); }}>
           <SendIcon />
         </button>
       </footer>
+      {mediaOpen ? <DmMediaPicker user={user} profile={profile} onClose={() => setMediaOpen(false)} onSendMedia={sendMedia} onSendSticker={sendSticker} /> : null}
     </>
   );
 }

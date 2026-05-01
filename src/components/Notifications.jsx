@@ -64,6 +64,8 @@ export function NotificationsModal({ user, onClose }) {
             <Avatar user={{ name: item.fromName, username: item.fromUsername, photoURL: item.fromPhoto }} size={34} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="nt-text"><b>{item.fromName || "Alfa"}</b> {item.text || item.type || ""}</div>
+              {item.postText ? <div className="nt-post-ref">{item.postText.slice(0, 90)}</div> : null}
+              {item.type === "news" && item.newsTitle ? <div className="nt-post-ref">{item.newsTitle}</div> : null}
               <div className="nt-time">{timeAgo(item.at)}</div>
             </div>
           </button>

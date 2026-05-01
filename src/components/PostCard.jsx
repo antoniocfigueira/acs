@@ -91,6 +91,7 @@ export function PostCard({ post, user, profile, compact = false }) {
           fromUsername: profile?.username || "",
           fromPhoto: profile?.photoURL || "",
           postId: post.id,
+          postText: post.text || "",
           text: "gostou do teu post"
         });
       }
@@ -401,6 +402,7 @@ function Comments({ post, user, profile }) {
           fromUsername: profile?.username || "",
           fromPhoto: profile?.photoURL || "",
           postId: post.id,
+          postText: post.text || "",
           text: `comentou: "${clean.slice(0, 60)}${clean.length > 60 ? "..." : ""}"`
         });
       }

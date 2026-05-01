@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { collection, limit as fsLimit, onSnapshot, query, orderBy, where } from "firebase/firestore";
+import { addDoc, collection, limit as fsLimit, onSnapshot, query, orderBy, serverTimestamp, where } from "firebase/firestore";
 import { db, showLocalNotification } from "../lib/firebase.js";
 
 export function NotificationRuntime({ user }) {
@@ -30,6 +30,45 @@ export function NotificationRuntime({ user }) {
       }
       firstSnap = false;
       previousUnread = unread;
+    });
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!user?.uid) return undefined;
+    let firstSnap = true;
+    let latestSeen = 0;
+    try {
+      latestSeen = Number(localStorage.getItem("acs_latest_news_seen_v1") || "0");
+    } catch {}
+    const q = query(collection(db, "news"), orderBy("createdAt", "desc"), fsLimit(8));
+    return onSnapshot(q, (snap) => {
+      let newest = latestSeen;
+      const fresh = [];
+      snap.forEach((item) => {
+        const data = { id: item.id, ...item.data() };
+        const ts = data.createdAt?.toMillis ? data.createdAt.toMillis() : 0;
+        if (ts > newest) newest = ts;
+        if (!firstSnap && ts && ts > latestSeen && data.uid !== user.uid) fresh.push(data);
+      });
+      if (newest > latestSeen) {
+        latestSeen = newest;
+        try { localStorage.setItem("acs_latest_news_seen_v1", String(newest)); } catch {}
+      }
+      fresh.slice(0, 3).forEach((item) => {
+        addDoc(collection(db, "notifications", user.uid, "items"), {
+          type: "news",
+          fromUid: item.uid || "",
+          fromName: "Alfa News",
+          fromUsername: item.authorUsername || "",
+          fromPhoto: item.authorPhoto || "",
+          newsId: item.id,
+          newsTitle: item.title || "",
+          text: "nova publicacao nos Alfa News",
+          read: false,
+          at: serverTimestamp()
+        }).catch(() => {});
+      });
+      firstSnap = false;
     });
   }, [user?.uid]);
 

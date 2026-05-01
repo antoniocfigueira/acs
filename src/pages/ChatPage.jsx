@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp as fsServerTimestamp, setDoc } from "firebase/firestore";
 import { limitToLast, onChildAdded, onChildChanged, onChildRemoved, onDisconnect, onValue, push, query as rtQuery, ref, remove, set, update } from "firebase/database";
-import { Edit3, Gamepad2, Smile, Trash2, Upload } from "lucide-react";
+import { Edit3, Gamepad2, Image as ImageIcon, Smile, Trash2, Upload } from "lucide-react";
 import { AppHeader, BottomNav, GradientDefs, HeaderUsersButton, PageFrame, SendIcon } from "../components/Shell.jsx";
 import { SheetModal } from "../components/Modal.jsx";
 import { useKeyboardViewport } from "../hooks/useKeyboardViewport.js";
@@ -598,6 +598,10 @@ function ChatMessage({ message, previous, user, profile }) {
           <div className={`msg-bubble ${message.type === "sticker" ? "sticker-msg" : ""}`} style={message.type === "sticker" ? { background: "transparent", border: 0, padding: 0, boxShadow: "none" } : null}>
             {message.type === "sticker" && message.stickerUrl ? (
               <img src={message.stickerUrl} alt="sticker" style={{ display: "block", width: 120, height: 120, objectFit: "contain" }} />
+            ) : message.type === "image" && message.mediaURL ? (
+              <img className="msg-media" src={message.mediaURL} alt="" loading="lazy" />
+            ) : message.type === "video" && message.mediaURL ? (
+              <video className="msg-media" src={message.mediaURL} controls playsInline />
             ) : (
               <div className="msg-text">{message.text || ""}</div>
             )}
@@ -629,10 +633,11 @@ function MessageEditModal({ initial, onClose, onSave }) {
   );
 }
 
-function StickerPicker({ user, profile, onClose, onSend }) {
+function StickerPicker({ user, profile, onClose, onSend, onSendMedia }) {
   const [stickers, setStickers] = useState([]);
   const [uploadPct, setUploadPct] = useState(null);
-  const inputRef = useRef(null);
+  const stickerInputRef = useRef(null);
+  const mediaInputRef = useRef(null);
 
   useEffect(() => {
     const q = query(collection(db, "stickers"), orderBy("createdAt", "desc"));
@@ -661,12 +666,34 @@ function StickerPicker({ user, profile, onClose, onSend }) {
       toast(`Erro: ${err.message}`, "error");
     } finally {
       setUploadPct(null);
-      if (inputRef.current) inputRef.current.value = "";
+      if (stickerInputRef.current) stickerInputRef.current.value = "";
+    }
+  };
+
+  const sendMediaFile = async (file) => {
+    if (!file) return;
+    try {
+      setUploadPct(0);
+      const up = await uploadMedia(file, (pct) => setUploadPct(Math.round(pct * 100)));
+      await onSendMedia(up);
+      onClose();
+    } catch (err) {
+      toast(`Erro: ${err.message}`, "error");
+    } finally {
+      setUploadPct(null);
+      if (mediaInputRef.current) mediaInputRef.current.value = "";
     }
   };
 
   return (
-    <SheetModal title="Stickers" onClose={onClose}>
+    <SheetModal title="Media" onClose={onClose}>
+      <div className="media-actions-row">
+        <input ref={mediaInputRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={(event) => sendMediaFile(event.target.files?.[0])} />
+        <button type="button" className="btn-primary tap" onClick={() => mediaInputRef.current?.click()} disabled={uploadPct !== null}>
+          <ImageIcon size={16} /> Enviar foto/video
+        </button>
+      </div>
+      <div className="settings-title" style={{ margin: "12px 0 8px" }}>Stickers</div>
       <div className="sticker-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(90px,1fr))", gap: 8, maxHeight: 300, overflowY: "auto" }}>
         {stickers.length ? (
           stickers.map((sticker) => {
@@ -709,8 +736,8 @@ function StickerPicker({ user, profile, onClose, onSend }) {
         )}
       </div>
       <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginTop: 12 }}>
-        <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(event) => uploadSticker(event.target.files?.[0])} />
-        <button type="button" className="btn-primary" style={{ width: "100%", padding: 10, fontSize: 13 }} onClick={() => inputRef.current?.click()} disabled={uploadPct !== null}>
+        <input ref={stickerInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(event) => uploadSticker(event.target.files?.[0])} />
+        <button type="button" className="btn-primary" style={{ width: "100%", padding: 10, fontSize: 13 }} onClick={() => stickerInputRef.current?.click()} disabled={uploadPct !== null}>
           <Upload size={16} /> {uploadPct === null ? "Carregar sticker" : `A enviar ${uploadPct}%`}
         </button>
       </div>
@@ -826,6 +853,29 @@ export function ChatPage() {
     }
   };
 
+  const sendMedia = async (media) => {
+    if (!user || !profile || !media?.url) return;
+    const mediaType = media.type === "video" ? "video" : "image";
+    try {
+      await push(ref(rtdb, "chat/messages"), {
+        uid: user.uid,
+        name: profile.name,
+        username: profile.username,
+        photoURL: profile.photoURL || "",
+        isAdmin: !!profile.isAdmin,
+        role: profile.role || "user",
+        nameColor: profile.nameColor || "",
+        nameStyle: profile.nameStyle || "",
+        type: mediaType,
+        mediaURL: media.url,
+        at: Date.now()
+      });
+      requestAnimationFrame(scrollToLatest);
+    } catch (err) {
+      toast(`Erro: ${err.message}`, "error");
+    }
+  };
+
   return (
     <PageFrame page="chat.html">
       <GradientDefs />
@@ -870,15 +920,15 @@ export function ChatPage() {
         <button type="button" className="chat-games-btn tap" aria-label="Jogos" title="Jogos" onClick={() => setGamePickerOpen(true)} style={{ width: 42, height: 42, borderRadius: "50%", background: "#1a1a1a", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--text)", position: "relative" }}>
           <Gamepad2 size={22} />
         </button>
-        <button type="button" className="chat-sticker-btn tap" aria-label="Stickers" onClick={() => setPickerOpen(true)} style={{ width: 42, height: 42, borderRadius: "50%", background: "#1a1a1a", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--text)" }}>
-          <Smile size={22} />
+        <button type="button" className="chat-sticker-btn tap" aria-label="Media" onClick={() => setPickerOpen(true)} style={{ width: 42, height: 42, borderRadius: "50%", background: "#1a1a1a", border: "1px solid var(--border)", display: "grid", placeItems: "center", color: "var(--text)" }}>
+          <ImageIcon size={22} />
         </button>
         <button className="chat-send" type="button" disabled={!text.trim() || !user || !profile} aria-label="Enviar" onPointerDown={(event) => { event.preventDefault(); sendMessage(); }}>
           <SendIcon />
         </button>
       </footer>
       <BottomNav active="chat.html" />
-      {pickerOpen && user && profile ? <StickerPicker user={user} profile={profile} onClose={() => setPickerOpen(false)} onSend={sendSticker} /> : null}
+      {pickerOpen && user && profile ? <StickerPicker user={user} profile={profile} onClose={() => setPickerOpen(false)} onSend={sendSticker} onSendMedia={sendMedia} /> : null}
       {gamePickerOpen && user && profile ? <GamePicker user={user} profile={profile} onlineUsers={onlineUsers} onClose={() => setGamePickerOpen(false)} /> : null}
       {onlineOpen ? <OnlineUsersModal onlineUsers={onlineUsers} onClose={() => setOnlineOpen(false)} /> : null}
     </PageFrame>
