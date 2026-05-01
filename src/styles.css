@@ -1316,6 +1316,18 @@ body.games-page .dark-ds .games-bottom-screen {
   display: block;
   padding: 10px;
   gap: 8px;
+
+  opacity: 1;
+  filter: brightness(1);
+  transition:
+    opacity 420ms ease 120ms,
+    filter 420ms ease 120ms;
+}
+
+body.games-page .games-page-shell.is-booting .dark-ds .games-bottom-screen {
+  opacity: 0;
+  filter: brightness(0);
+  pointer-events: none;
 }
 
 .ds-game-grid {

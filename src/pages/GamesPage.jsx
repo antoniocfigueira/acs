@@ -460,7 +460,7 @@ function JumpGame({ user, profile, onExit }) {
         </button>
         <div>
           <strong>Alfa Jump</strong>
-          <span>joga inclinando o telemovel</span>
+          <span>Joga inclinando o telemóvel</span>
         </div>
         <button className="icon-btn tap" type="button" aria-label="Reiniciar" onClick={resetGame}>
           <RotateCcw size={20} />
@@ -477,7 +477,7 @@ function JumpGame({ user, profile, onExit }) {
           <strong>+{gameOver ? earned : potentialPoints}</strong>
         </div>
         <div>
-          <span>Recorde</span>
+          <span>Record</span>
           <strong>{Math.max(profile?.gameStats?.alfaJumpBest || profile?.["gameStats.alfaJumpBest"] || 0, score)}</strong>
         </div>
       </div>
@@ -489,12 +489,12 @@ function JumpGame({ user, profile, onExit }) {
             <div className="jump-result jump-start">
               <Smartphone size={30} />
               <strong>Movimento</strong>
-              <span>Ativa o acelerometro e inclina o telemovel para controlar.</span>
+              <span>Ativa o acelerómetro e inclina o telemóvel para controlar.</span>
               <button className="primary tap" type="button" onClick={enableTilt}>
                 <Smartphone size={18} />
-                Ativar acelerometro
+                Ativar acelerómetro
               </button>
-              <small>Desktop: usa espaço para testar com teclado.</small>
+              <small>Desktop: usa espaço para iniciar.</small>
             </div>
           </div>
         ) : null}
@@ -516,7 +516,7 @@ function JumpGame({ user, profile, onExit }) {
       <div className="jump-actions">
         <button className={`tilt-btn tap ${tiltReady ? "active" : ""}`} type="button" onClick={enableTilt}>
           <Smartphone size={18} />
-          {tiltReady ? "Movimento ativo" : "Ativar acelerometro"}
+          {tiltReady ? "Movimento ativo" : "Ativar acelerómetro"}
         </button>
       </div>
     </section>
@@ -539,7 +539,7 @@ export function GamesPage() {
       <PageFrame page="games.html">
         <GradientDefs />
         <AppHeader title="Jogos" />
-        <div className="empty">Nao foi possivel carregar os jogos.</div>
+        <div className="empty">Nao foi possível carregar os jogos.</div>
         <BottomNav active="games.html" />
       </PageFrame>
     );
