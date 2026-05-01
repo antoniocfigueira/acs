@@ -688,10 +688,10 @@ function StickerPicker({ user, profile, onClose, onSend, onSendMedia }) {
   return (
     <SheetModal title="Media" onClose={onClose}>
       <div className="media-actions-row">
-        <input ref={mediaInputRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={(event) => sendMediaFile(event.target.files?.[0])} />
-        <button type="button" className="btn-primary tap" onClick={() => mediaInputRef.current?.click()} disabled={uploadPct !== null}>
+        <label className={`btn-primary tap native-file-trigger ${uploadPct !== null ? "is-disabled" : ""}`}>
           <ImageIcon size={16} /> Enviar foto/video
-        </button>
+          <input ref={mediaInputRef} className="native-file-input" type="file" accept="image/*,video/*" disabled={uploadPct !== null} onChange={(event) => sendMediaFile(event.target.files?.[0])} />
+        </label>
       </div>
       <div className="settings-title" style={{ margin: "12px 0 8px" }}>Stickers</div>
       <div className="sticker-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(90px,1fr))", gap: 8, maxHeight: 300, overflowY: "auto" }}>
@@ -736,10 +736,10 @@ function StickerPicker({ user, profile, onClose, onSend, onSendMedia }) {
         )}
       </div>
       <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginTop: 12 }}>
-        <input ref={stickerInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(event) => uploadSticker(event.target.files?.[0])} />
-        <button type="button" className="btn-primary" style={{ width: "100%", padding: 10, fontSize: 13 }} onClick={() => stickerInputRef.current?.click()} disabled={uploadPct !== null}>
+        <label className={`btn-primary native-file-trigger ${uploadPct !== null ? "is-disabled" : ""}`} style={{ width: "100%", padding: 10, fontSize: 13 }}>
           <Upload size={16} /> {uploadPct === null ? "Carregar sticker" : `A enviar ${uploadPct}%`}
-        </button>
+          <input ref={stickerInputRef} className="native-file-input" type="file" accept="image/*" disabled={uploadPct !== null} onChange={(event) => uploadSticker(event.target.files?.[0])} />
+        </label>
       </div>
     </SheetModal>
   );

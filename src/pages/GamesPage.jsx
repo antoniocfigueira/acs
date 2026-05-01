@@ -530,7 +530,7 @@ export function GamesPage() {
 
   useEffect(() => {
     setBooting(true);
-    const timer = window.setTimeout(() => setBooting(false), 1700);
+    const timer = window.setTimeout(() => setBooting(false), 1450);
     return () => window.clearTimeout(timer);
   }, []);
 

@@ -248,10 +248,10 @@ function DmMediaPicker({ user, profile, onSendMedia, onSendSticker, onClose }) {
 
   return (
     <SheetModal title="Media" onClose={onClose}>
-      <input ref={mediaRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={(event) => sendFile(event.target.files?.[0])} />
-      <button className="btn-primary tap" type="button" style={{ width: "100%", padding: 10 }} disabled={busy} onClick={() => mediaRef.current?.click()}>
+      <label className={`btn-primary tap native-file-trigger ${busy ? "is-disabled" : ""}`} style={{ width: "100%", padding: 10 }}>
         <ImageIcon size={16} /> Enviar foto/video
-      </button>
+        <input ref={mediaRef} className="native-file-input" type="file" accept="image/*,video/*" disabled={busy} onChange={(event) => sendFile(event.target.files?.[0])} />
+      </label>
       <div className="settings-title" style={{ margin: "14px 0 8px" }}>Stickers</div>
       <div className="sticker-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(90px,1fr))", gap: 8, maxHeight: 300, overflowY: "auto" }}>
         {stickers.map((sticker) => (
@@ -260,10 +260,10 @@ function DmMediaPicker({ user, profile, onSendMedia, onSendSticker, onClose }) {
           </button>
         ))}
       </div>
-      <input ref={stickerRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(event) => addSticker(event.target.files?.[0])} />
-      <button className="btn-ghost tap" type="button" style={{ width: "100%", marginTop: 12, padding: 10 }} disabled={busy} onClick={() => stickerRef.current?.click()}>
+      <label className={`btn-ghost tap native-file-trigger ${busy ? "is-disabled" : ""}`} style={{ width: "100%", marginTop: 12, padding: 10 }}>
         <Upload size={16} /> Carregar sticker
-      </button>
+        <input ref={stickerRef} className="native-file-input" type="file" accept="image/*" disabled={busy} onChange={(event) => addSticker(event.target.files?.[0])} />
+      </label>
     </SheetModal>
   );
 }

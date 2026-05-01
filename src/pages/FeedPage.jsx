@@ -108,8 +108,7 @@ function usePosts(user, profile, filter, refreshKey = 0) {
 function useStories(refreshKey = 0) {
   const [stories, setStories] = useState([]);
   useEffect(() => {
-    const q = query(collection(db, "stories"), orderBy("createdAt", "desc"), fsLimit(50));
-    return onSnapshot(q, (snap) => {
+    const applySnapshot = (snap) => {
       const now = Date.now();
       const rows = [];
       snap.forEach((item) => {
@@ -118,8 +117,12 @@ function useStories(refreshKey = 0) {
         if (exp && exp < now) return;
         rows.push(story);
       });
-      setStories(rows);
-    }, (err) => {
+      const timestamp = (story) => story.createdAt?.toMillis ? story.createdAt.toMillis() : Number(story.createdAt || 0);
+      rows.sort((a, b) => timestamp(b) - timestamp(a));
+      setStories(rows.slice(0, 50));
+    };
+
+    return onSnapshot(collection(db, "stories"), applySnapshot, (err) => {
       console.warn("stories:", err?.message || err);
       setStories([]);
     });
@@ -251,13 +254,13 @@ function Composer({ user, profile }) {
             <button type="button" className="remove-media" aria-label="Remover" onClick={() => setMedia(null)}>x</button>
           </div>
         ) : null}
-        <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={(event) => pickFile(event.target.files?.[0])} />
         <div className="tools">
           <div className="char-count">{text.length} / 500</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <button className="btn-ghost tap" type="button" style={{ padding: "8px 12px", fontSize: 13 }} title="Adicionar foto/video" onClick={() => fileRef.current?.click()} disabled={busy}>
+            <label className={`btn-ghost tap native-file-trigger ${busy ? "is-disabled" : ""}`} style={{ padding: "8px 12px", fontSize: 13 }} title="Adicionar foto/video" aria-label="Adicionar foto/video">
               <ImageIcon size={16} />
-            </button>
+              <input ref={fileRef} className="native-file-input" type="file" accept="image/*,video/*" disabled={busy} onChange={(event) => pickFile(event.target.files?.[0])} />
+            </label>
             {profile?.isAdmin ? (
               <button className={`btn-ghost tap admin-broadcast-btn ${notifyAll ? "active" : ""}`} type="button" aria-pressed={notifyAll} style={{ padding: "8px 12px", fontSize: 13 }} title="Notificar todos os users" onClick={() => setNotifyAll((v) => !v)}>
                 <Bell size={16} />
@@ -420,8 +423,10 @@ function StoryCreateModal({ fileRef, onClose, onCreate }) {
   return (
     <SheetModal title="Nova story" onClose={onClose}>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={(event) => pick(event.target.files?.[0])} />
-        <button className="btn-ghost" type="button" onClick={() => fileRef.current?.click()}>Escolher foto/video</button>
+        <label className="btn-ghost native-file-trigger">
+          Escolher foto/video
+          <input ref={fileRef} className="native-file-input" type="file" accept="image/*,video/*" onChange={(event) => pick(event.target.files?.[0])} />
+        </label>
         {preview ? (
           <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", border: "1px solid var(--border)", background: "#050505" }}>
             {file?.type?.startsWith("video/") ? <video src={preview} controls style={{ width: "100%", maxHeight: 280 }} /> : <img src={preview} alt="" style={{ width: "100%", maxHeight: 280, objectFit: "contain", display: "block" }} />}

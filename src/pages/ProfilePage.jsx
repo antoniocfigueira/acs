@@ -152,8 +152,10 @@ function EditProfileModal({ profile, onClose }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Avatar user={form} size={58} />
-          <button className="btn-ghost" type="button" onClick={() => fileRef.current?.click()} disabled={busy}>Foto</button>
-          <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(event) => uploadPhoto(event.target.files?.[0])} />
+          <label className={`btn-ghost native-file-trigger ${busy ? "is-disabled" : ""}`}>
+            Foto
+            <input ref={fileRef} className="native-file-input" type="file" accept="image/*" disabled={busy} onChange={(event) => uploadPhoto(event.target.files?.[0])} />
+          </label>
         </div>
         <input className="input" placeholder="Nome" value={form.name} onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))} style={{ padding: "11px 14px" }} />
         <textarea className="input" placeholder="Bio" value={form.bio} maxLength="180" rows="4" onChange={(event) => setForm((prev) => ({ ...prev, bio: event.target.value }))} style={{ padding: "11px 14px", fontFamily: "inherit", resize: "vertical" }} />

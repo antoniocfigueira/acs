@@ -17,6 +17,34 @@ body,
   min-height: 100dvh;
 }
 
+.native-file-input {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: .01 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+}
+
+.native-file-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.native-file-trigger.is-disabled {
+  opacity: .55;
+  pointer-events: none;
+}
+
 /* React SPA layout fixes */
 body.chat-page #root,
 body.dm-page #root,
@@ -1068,7 +1096,12 @@ body.games-page [data-react-page="games.html"] {
 }
 
 .tap-ripple {
-  display: none !important;
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(236,72,153,.35), rgba(139,92,246,0));
+  transform: scale(0);
+  animation: ripple .55s ease forwards;
 }
 
 .has-local-ripple {
@@ -1077,6 +1110,13 @@ body.games-page [data-react-page="games.html"] {
 }
 
 @keyframes tapRippleGlow {
+  to {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes ripple {
   to {
     transform: scale(2.4);
     opacity: 0;
@@ -1767,9 +1807,45 @@ body.games-page .dark-ds .ds-start-btn:disabled {
     #050507;
   opacity: 0;
   pointer-events: none;
+  overflow: hidden;
+}
+
+.ds-boot-logo::before,
+.ds-boot-logo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ds-boot-logo::before {
+  background:
+    repeating-linear-gradient(180deg, rgba(255,255,255,.12) 0 1px, transparent 1px 4px),
+    linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+  opacity: .2;
+  mix-blend-mode: screen;
+  animation: dsBootScan 1450ms linear both;
+}
+
+.ds-boot-logo::after {
+  left: 10%;
+  right: 10%;
+  top: 50%;
+  bottom: auto;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #f0abfc, #7dd3fc, transparent);
+  box-shadow:
+    0 0 18px rgba(240,171,252,.8),
+    0 0 30px rgba(125,211,252,.45);
+  opacity: 0;
+  transform: scaleX(.28);
+  animation: dsBootLine 1450ms cubic-bezier(.2,.8,.2,1) both;
 }
 
 .ds-boot-logo span {
+  position: relative;
+  z-index: 1;
   color: transparent;
   background: linear-gradient(90deg, #f0abfc, #ec4899 34%, #7dd3fc 67%, #f0abfc);
   background-size: 220% 100%;
@@ -1787,16 +1863,16 @@ body.games-page .dark-ds .ds-start-btn:disabled {
 
 .games-page-shell.is-booting .games-top-screen::after,
 .games-page-shell.is-booting .games-bottom-screen::after {
-  animation: dsScreenOff 1700ms linear both;
+  animation: dsScreenPowerOn 1450ms cubic-bezier(.18,.86,.18,1) both;
 }
 
 .games-page-shell.is-booting .games-top-screen > :not(.ds-boot-logo):not(.ds-statusbar),
 .games-page-shell.is-booting .games-bottom-screen > * {
-  animation: dsContentWait 1700ms linear both;
+  animation: dsContentWait 1450ms linear both;
 }
 
 .games-page-shell.is-booting .ds-boot-logo {
-  animation: dsBootLogo 1700ms linear both;
+  animation: dsBootLogo 1450ms linear both;
 }
 
 @keyframes jumpArtworkFloat {
@@ -1824,20 +1900,72 @@ body.games-page .dark-ds .ds-start-btn:disabled {
 }
 
 @keyframes dsBootLogo {
-  0% { opacity: 1; }
-  64% { opacity: 1; }
-  82% { opacity: 0; }
-  100% { opacity: 0; }
+  0%, 16% {
+    opacity: 0;
+    filter: brightness(1.8) blur(2px);
+    transform: scale(.98);
+  }
+  24%, 66% {
+    opacity: 1;
+    filter: brightness(1) blur(0);
+    transform: scale(1);
+  }
+  84%, 100% {
+    opacity: 0;
+    filter: brightness(.85) blur(1px);
+    transform: scale(1.01);
+  }
 }
 
-@keyframes dsScreenOff {
-  0%, 78% { opacity: 1; }
-  100% { opacity: 0; }
+@keyframes dsScreenPowerOn {
+  0% {
+    opacity: 1;
+    background: #f8fbff;
+    transform: scaleY(.018);
+    box-shadow:
+      0 0 22px rgba(255,255,255,.9),
+      0 0 44px rgba(125,211,252,.5);
+  }
+  10% {
+    opacity: 1;
+    background: #ffffff;
+    transform: scaleY(.018);
+  }
+  27% {
+    opacity: 1;
+    background: #020204;
+    transform: scaleY(1);
+    box-shadow: inset 0 0 32px rgba(255,255,255,.08);
+  }
+  78% {
+    opacity: 1;
+    background: #020204;
+    transform: scaleY(1);
+    box-shadow: inset 0 0 32px rgba(255,255,255,.04);
+  }
+  100% {
+    opacity: 0;
+    background: #020204;
+    transform: scaleY(1);
+    box-shadow: none;
+  }
 }
 
 @keyframes dsContentWait {
-  0%, 84% { opacity: 0; }
+  0%, 88% { opacity: 0; }
   100% { opacity: 1; }
+}
+
+@keyframes dsBootScan {
+  0%, 16% { opacity: 0; transform: translateY(-10%); }
+  24%, 70% { opacity: .22; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(10%); }
+}
+
+@keyframes dsBootLine {
+  0% { opacity: 0; transform: scaleX(.24); }
+  4%, 15% { opacity: .95; transform: scaleX(1); }
+  28%, 100% { opacity: 0; transform: scaleX(1); }
 }
 
 @keyframes alfaDsText {
@@ -2205,7 +2333,12 @@ body.games-page .dark-ds .ds-start-btn:disabled {
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
-  animation: gradShift 9s ease-in-out infinite alternate;
+  animation: nameGradientMove 3.8s linear infinite;
+}
+
+@keyframes nameGradientMove {
+  from { background-position: 0% 50%; }
+  to { background-position: 220% 50%; }
 }
 
 @supports not (color: color-mix(in srgb, red, white)) {
@@ -2551,6 +2684,16 @@ body.dm-page.keyboard-open .bottom-nav {
   max-height: 280px;
   border-radius: 16px;
   object-fit: cover;
+}
+
+body.chat-page .msg,
+body.dm-page .msg {
+  align-items: flex-end;
+}
+
+body.chat-page .msg-avatar,
+body.dm-page .msg-avatar {
+  align-self: flex-end;
 }
 
 .media-actions-row .btn-primary {

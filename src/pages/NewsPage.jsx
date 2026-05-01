@@ -104,8 +104,10 @@ function NewsComposer({ profile, user, initial, onClose }) {
             <button className="btn-icon" type="button" aria-label="Remover" onClick={() => setMedia(null)} style={{ position: "absolute", right: 8, top: 8, background: "rgba(0,0,0,.65)" }}>x</button>
           </div>
         ) : null}
-        <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={(event) => pickFile(event.target.files?.[0])} />
-        <button className="btn-ghost" type="button" onClick={() => fileRef.current?.click()} disabled={busy}>Carregar ficheiro</button>
+        <label className={`btn-ghost native-file-trigger ${busy ? "is-disabled" : ""}`}>
+          Carregar ficheiro
+          <input ref={fileRef} className="native-file-input" type="file" accept="image/*,video/*" disabled={busy} onChange={(event) => pickFile(event.target.files?.[0])} />
+        </label>
         <button className="btn-primary" type="button" onClick={save} disabled={busy}>{busy ? "A guardar" : initial ? "Guardar" : "Publicar"}</button>
       </div>
     </SheetModal>
