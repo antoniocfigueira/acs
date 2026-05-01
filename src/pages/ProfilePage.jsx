@@ -75,8 +75,8 @@ function EditProfileModal({ profile, onClose }) {
     name: profile.name || "",
     bio: profile.bio || "",
     photoURL: profile.photoURL || "",
-    nameColor: profile.nameColor || "",
-    nameStyle: profile.nameStyle || "",
+    nameColor: profile.nameStyle === "gold" ? "gold" : profile.nameColor || "",
+    nameStyle: profile.nameStyle === "gold" ? "" : profile.nameStyle || "",
     profileTheme: profile.profileTheme || ""
   });
   const [busy, setBusy] = useState(false);
@@ -123,8 +123,8 @@ function EditProfileModal({ profile, onClose }) {
       setBusy(false);
     }
   };
-  const colorOptions = [...new Set(["", ...(Array.isArray(profile.unlockedNameColors) ? profile.unlockedNameColors : []), profile.nameColor || ""])];
-  const styleOptions = [...new Set(["", ...(Array.isArray(profile.unlockedNameStyles) ? profile.unlockedNameStyles : []), profile.nameStyle || ""])];
+  const colorOptions = [...new Set(["", ...(Array.isArray(profile.unlockedNameColors) ? profile.unlockedNameColors : []), profile.nameStyle === "gold" ? "gold" : "", profile.nameColor || ""])];
+  const styleOptions = [...new Set(["", ...(Array.isArray(profile.unlockedNameStyles) ? profile.unlockedNameStyles : []), profile.nameStyle === "gold" ? "" : profile.nameStyle || ""])];
   const themeOptions = [...new Set(["", ...(Array.isArray(profile.unlockedProfileThemes) ? profile.unlockedProfileThemes : []), profile.profileTheme || ""])];
   const colorLabel = (value) => ({
     "": "Padrao",
@@ -133,9 +133,10 @@ function EditProfileModal({ profile, onClose }) {
     "#22c55e": "Verde",
     "#ef4444": "Vermelho",
     "#a855f7": "Roxo",
-    "#f97316": "Laranja"
+    "#f97316": "Laranja",
+    gold: "Dourado"
   })[value] || value;
-  const styleLabel = (value) => ({ "": "Sem efeito", gold: "Dourado", grad: "Gradiente", glow: "Glow" })[value] || value;
+  const styleLabel = (value) => ({ "": "Sem efeito", grad: "Gradiente", glow: "Glow" })[value] || value;
   const themeLabel = (value) => ({
     "": "Sem tema",
     flames: "Chamas",

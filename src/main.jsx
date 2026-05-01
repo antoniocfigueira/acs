@@ -159,38 +159,6 @@ function registerAppServiceWorker() {
   });
 }
 
-function installTapRipple() {
-  if (window.__alfaTapRippleInstalled) return;
-  window.__alfaTapRippleInstalled = true;
-  document.addEventListener("pointerdown", (event) => {
-    if (event.pointerType === "mouse" && event.button !== 0) return;
-    const path = typeof event.composedPath === "function" ? event.composedPath() : [];
-    const source = path.find((item) => item instanceof Element) || event.target;
-    const target = source?.closest?.("[data-ripple], .tap, .action-btn, .feed-filter-btn, .theme-option, .drawer-item, .settings-action, .icon-btn");
-    if (!target || target.disabled || target.closest(".app-splash")) return;
-    const rect = target.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) return;
-
-    target.querySelectorAll(":scope > .tap-ripple").forEach((item) => item.remove());
-    const ripple = document.createElement("span");
-    ripple.className = "tap-ripple";
-    const size = Math.min(Math.max(rect.width, rect.height), 180);
-    ripple.style.width = `${size}px`;
-    ripple.style.height = `${size}px`;
-    ripple.style.left = `${event.clientX - rect.left - size / 2}px`;
-    ripple.style.top = `${event.clientY - rect.top - size / 2}px`;
-    target.classList.add("has-local-ripple");
-    target.appendChild(ripple);
-    const cleanup = () => {
-      ripple.remove();
-      if (!target.querySelector(":scope > .tap-ripple")) target.classList.remove("has-local-ripple");
-    };
-    ripple.addEventListener("animationend", cleanup, { once: true });
-    window.setTimeout(cleanup, 620);
-  }, { passive: true });
-}
-
 function LegacyPage({ page, search }) {
   const legacy = legacyPages[page] || legacyPages["index.html"];
   const script = SCRIPT_BY_PAGE[page];
@@ -258,7 +226,8 @@ function App() {
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
-    installTapRipple();
+    document.querySelectorAll(".tap-ripple").forEach((item) => item.remove());
+    document.querySelectorAll(".has-local-ripple").forEach((item) => item.classList.remove("has-local-ripple"));
     registerAppServiceWorker();
     try {
       const theme = localStorage.getItem("acs_theme_v1") || "dark";

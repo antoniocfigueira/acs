@@ -36,7 +36,7 @@ const SHOP_ITEMS = [
   { id: "color_red", unlockField: "unlockedNameColors", unlockValue: "#ef4444", name: "Cor Vermelha", sub: "Nome em vermelho", price: 50, preview: <span className="name-sample" style={{ color: "#ef4444" }}>Nome</span>, apply: { nameColor: "#ef4444" } },
   { id: "color_purple", unlockField: "unlockedNameColors", unlockValue: "#a855f7", name: "Cor Roxa", sub: "Nome em roxo", price: 50, preview: <span className="name-sample" style={{ color: "#a855f7" }}>Nome</span>, apply: { nameColor: "#a855f7" } },
   { id: "color_orange", unlockField: "unlockedNameColors", unlockValue: "#f97316", name: "Cor Laranja", sub: "Nome em laranja", price: 50, preview: <span className="name-sample" style={{ color: "#f97316" }}>Nome</span>, apply: { nameColor: "#f97316" } },
-  { id: "color_gold", unlockField: "unlockedNameStyles", unlockValue: "gold", name: "Dourado especial", sub: "Cor dourada com glow", price: 50, preview: <span className="name-sample name-gold">Nome</span>, apply: { nameStyle: "gold" } },
+  { id: "color_gold", unlockField: "unlockedNameColors", unlockValue: "gold", name: "Cor Dourada", sub: "Nome dourado com glow", price: 50, preview: <span className="name-sample name-gold">Nome</span>, apply: { nameColor: "gold", nameStyle: null } },
   { id: "grad_anim", unlockField: "unlockedNameStyles", unlockValue: "grad", name: "Degrade animado", sub: "Nome com gradiente animado", price: 30, preview: <span className="name-sample name-grad-anim">Nome</span>, apply: { nameStyle: "grad" } },
   { id: "glow_name", unlockField: "unlockedNameStyles", unlockValue: "glow", name: "Glow", sub: "Nome com brilho da tua cor", price: 50, preview: <span className="name-sample name-glow" style={{ "--name-glow-base": "#ec4899" }}>Nome</span>, apply: { nameStyle: "glow" } },
   { id: "reset_color", name: "Remover modificacoes", sub: "Voltar a cor padrao", price: 0, preview: <span className="name-sample">Nome</span>, apply: { nameColor: null, nameStyle: null } },
@@ -108,8 +108,7 @@ function usePosts(user, profile, filter, refreshKey = 0) {
 function useStories(refreshKey = 0) {
   const [stories, setStories] = useState([]);
   useEffect(() => {
-    const q = query(collection(db, "stories"), orderBy("createdAt", "asc"), fsLimit(50));
-    return onSnapshot(q, (snap) => {
+    return onSnapshot(collection(db, "stories"), (snap) => {
       const now = Date.now();
       const rows = [];
       snap.forEach((item) => {
@@ -118,7 +117,15 @@ function useStories(refreshKey = 0) {
         if (exp && exp < now) return;
         rows.push(story);
       });
-      setStories(rows);
+      rows.sort((a, b) => {
+        const at = a.createdAt?.toMillis ? a.createdAt.toMillis() : Number(a.createdAt || 0);
+        const bt = b.createdAt?.toMillis ? b.createdAt.toMillis() : Number(b.createdAt || 0);
+        return at - bt;
+      });
+      setStories(rows.slice(-50));
+    }, (err) => {
+      console.warn("stories:", err?.message || err);
+      setStories([]);
     });
   }, [refreshKey]);
   return stories;
@@ -161,6 +168,7 @@ function useDmUnread(user) {
 function itemIsUnlocked(profile, item) {
   if (item.price === 0) return true;
   if (!item.unlockField || item.unlockValue === undefined) return false;
+  if (item.unlockValue === "gold" && profile?.nameStyle === "gold") return true;
   const activeByLegacyField = item.apply && Object.entries(item.apply).some(([key, value]) => value && profile?.[key] === value);
   return activeByLegacyField || (Array.isArray(profile?.[item.unlockField]) && profile[item.unlockField].includes(item.unlockValue));
 }
@@ -351,17 +359,18 @@ function Stories({ stories, user, profile }) {
   }, [stories]);
 
   const createStory = async (file, storyText = "") => {
-    if (!file) return;
+    const cleanText = storyText.trim().slice(0, 160);
+    if (!file && !cleanText) return;
     try {
-      const up = await uploadMedia(file);
+      const up = file ? await uploadMedia(file) : null;
       await addDoc(collection(db, "stories"), {
         uid: user.uid,
         authorName: profile.name || "",
         authorUsername: profile.username || "",
         authorPhoto: profile.photoURL || "",
-        text: storyText.trim().slice(0, 160),
-        mediaURL: up.url,
-        mediaType: up.type,
+        text: cleanText,
+        mediaURL: up?.url || "",
+        mediaType: up?.type || "",
         createdAt: serverTimestamp(),
         expiresAt: Date.now() + 24 * 60 * 60 * 1000
       });
@@ -422,7 +431,7 @@ function StoryCreateModal({ fileRef, onClose, onCreate }) {
           </div>
         ) : null}
         <textarea className="input" rows="3" maxLength="160" placeholder="Texto da story..." value={text} onChange={(event) => setText(event.target.value)} style={{ padding: 12, fontFamily: "inherit", resize: "vertical" }} />
-        <button className="btn-primary" type="button" disabled={!file} onClick={() => onCreate(file, text)}>Publicar story</button>
+        <button className="btn-primary" type="button" disabled={!file && !text.trim()} onClick={() => onCreate(file, text)}>Publicar story</button>
       </div>
     </SheetModal>
   );
@@ -472,8 +481,12 @@ function StoryViewer({ stories, user, onClose }) {
         <X size={22} />
       </button>
       {story.uid === user.uid ? <button className="story-viewer-delete tap" type="button" onClick={(event) => { event.stopPropagation(); deleteStory(); }}>Apagar</button> : null}
-      {story.mediaType === "video" ? <video src={story.mediaURL} controls autoPlay style={{ maxWidth: "100vw", maxHeight: "86vh" }} /> : <img src={story.mediaURL} alt="" style={{ maxWidth: "100vw", maxHeight: "86vh", objectFit: "contain" }} />}
-      {story.text ? <div style={{ position: "absolute", left: 20, right: 20, bottom: "calc(28px + env(safe-area-inset-bottom))", textAlign: "center", color: "white", fontWeight: 700, fontSize: 20, textShadow: "0 2px 12px rgba(0,0,0,.9)", whiteSpace: "pre-wrap" }}>{story.text}</div> : null}
+      {story.mediaURL ? (
+        story.mediaType === "video" ? <video src={story.mediaURL} controls autoPlay style={{ maxWidth: "100vw", maxHeight: "86vh" }} /> : <img src={story.mediaURL} alt="" style={{ maxWidth: "100vw", maxHeight: "86vh", objectFit: "contain" }} />
+      ) : (
+        <div className="story-text-only">{story.text || "Story"}</div>
+      )}
+      {story.mediaURL && story.text ? <div style={{ position: "absolute", left: 20, right: 20, bottom: "calc(28px + env(safe-area-inset-bottom))", textAlign: "center", color: "white", fontWeight: 700, fontSize: 20, textShadow: "0 2px 12px rgba(0,0,0,.9)", whiteSpace: "pre-wrap" }}>{story.text}</div> : null}
     </div>
   );
 }

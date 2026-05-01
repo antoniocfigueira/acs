@@ -1068,19 +1068,12 @@ body.games-page [data-react-page="games.html"] {
 }
 
 .tap-ripple {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  background: radial-gradient(circle, var(--ripple-a, rgba(236,72,153,.35)), var(--ripple-b, rgba(139,92,246,0)) 72%);
-  transform: scale(0);
-  will-change: transform, opacity;
-  animation: tapRippleGlow .55s ease forwards;
+  display: none !important;
 }
 
 .has-local-ripple {
-  position: relative !important;
-  overflow: hidden !important;
-  clip-path: inset(0 round inherit);
+  overflow: inherit !important;
+  clip-path: none !important;
 }
 
 @keyframes tapRippleGlow {
@@ -1794,16 +1787,16 @@ body.games-page .dark-ds .ds-start-btn:disabled {
 
 .games-page-shell.is-booting .games-top-screen::after,
 .games-page-shell.is-booting .games-bottom-screen::after {
-  animation: dsScreenOff 2800ms linear both;
+  animation: dsScreenOff 1700ms linear both;
 }
 
 .games-page-shell.is-booting .games-top-screen > :not(.ds-boot-logo):not(.ds-statusbar),
 .games-page-shell.is-booting .games-bottom-screen > * {
-  animation: dsContentWait 2800ms linear both;
+  animation: dsContentWait 1700ms linear both;
 }
 
 .games-page-shell.is-booting .ds-boot-logo {
-  animation: dsBootLogo 2800ms linear both;
+  animation: dsBootLogo 1700ms linear both;
 }
 
 @keyframes jumpArtworkFloat {
@@ -1831,20 +1824,19 @@ body.games-page .dark-ds .ds-start-btn:disabled {
 }
 
 @keyframes dsBootLogo {
-  0%, 32% { opacity: 0; }
-  38% { opacity: 1; }
-  72% { opacity: 1; }
+  0% { opacity: 1; }
+  64% { opacity: 1; }
   82% { opacity: 0; }
   100% { opacity: 0; }
 }
 
 @keyframes dsScreenOff {
-  0%, 88% { opacity: 1; }
+  0%, 78% { opacity: 1; }
   100% { opacity: 0; }
 }
 
 @keyframes dsContentWait {
-  0%, 92% { opacity: 0; }
+  0%, 84% { opacity: 0; }
   100% { opacity: 1; }
 }
 
@@ -2665,6 +2657,67 @@ body.dm-page.keyboard-open .bottom-nav {
   animation: roleCardIn .24s cubic-bezier(.2,.9,.2,1) both;
 }
 
+.role-info-symbol {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  background: rgba(139,92,246,.12);
+  border: 1px solid rgba(139,92,246,.28);
+  color: #a78bfa;
+  font-weight: 800;
+}
+
+.role-info-symbol.is-admin {
+  background: transparent;
+  border-color: transparent;
+}
+
+.role-info-symbol .role-badge-static {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  pointer-events: none;
+  border-radius: 50%;
+  background: var(--grad);
+  color: #fff;
+}
+
+.role-info-symbol .role-badge-static svg {
+  width: 22px;
+  height: 22px;
+}
+
+.story-viewer-react .story-viewer-close {
+  z-index: 8;
+  top: calc(8px + env(safe-area-inset-top)) !important;
+}
+
+.story-viewer-react .story-viewer-delete {
+  z-index: 8;
+  top: calc(10px + env(safe-area-inset-top)) !important;
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.story-text-only {
+  max-width: min(84vw, 520px);
+  padding: 24px;
+  color: white;
+  font-size: clamp(28px, 8vw, 54px);
+  font-weight: 900;
+  line-height: 1.1;
+  text-align: center;
+  white-space: pre-wrap;
+  text-shadow: 0 2px 18px rgba(0,0,0,.75);
+}
+
 @keyframes roleBackdropIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -2743,4 +2796,71 @@ html[data-theme="steampunk"] body::after {
 .art-character::before,
 .art-character::after {
   display: none !important;
+}
+
+html[data-theme="steampunk"] body::after {
+  background:
+    repeating-linear-gradient(90deg, transparent 0 58px, rgba(181,130,58,.032) 58px 59px),
+    repeating-linear-gradient(0deg, transparent 0 58px, rgba(181,130,58,.022) 58px 59px),
+    linear-gradient(135deg, rgba(101,67,33,.08), rgba(32,75,69,.045)) !important;
+  opacity: .66 !important;
+}
+
+html[data-theme="steampunk"] .settings-row,
+html[data-theme="steampunk"] .settings-action,
+html[data-theme="steampunk"] .settings-subsection,
+html[data-theme="steampunk"] .drawer-item,
+html[data-theme="steampunk"] .drawer-item .icon-wrap,
+html[data-theme="steampunk"] .icon-btn,
+html[data-theme="steampunk"] .btn-ghost {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="steampunk"] .settings-row,
+html[data-theme="steampunk"] .settings-action {
+  border-color: rgba(214,177,95,.16) !important;
+}
+
+.alfa-jump-icon .jump-character,
+.art-character {
+  background:
+    radial-gradient(circle at 35% 28%, #fff6a0 0%, #ffd54a 42%, #f59e0b 100%) !important;
+}
+
+.alfa-jump-icon .jump-character::before,
+.alfa-jump-icon .jump-character::after,
+.art-character::before,
+.art-character::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  top: 38% !important;
+  width: 16% !important;
+  height: 16% !important;
+  border-radius: 50% !important;
+  background: #151515 !important;
+}
+
+.alfa-jump-icon .jump-character::before,
+.art-character::before {
+  left: 31% !important;
+}
+
+.alfa-jump-icon .jump-character::after,
+.art-character::after {
+  right: 31% !important;
+}
+
+.alfa-jump-icon .jump-character span,
+.art-character span {
+  display: block !important;
+  position: absolute !important;
+  left: 32% !important;
+  top: 50% !important;
+  width: 36% !important;
+  height: 24% !important;
+  border: 0 !important;
+  border-bottom: max(2px, .12em) solid #151515 !important;
+  border-radius: 0 0 999px 999px !important;
 }
