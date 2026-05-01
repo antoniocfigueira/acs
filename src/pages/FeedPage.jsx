@@ -1512,8 +1512,23 @@ export function FeedPage({ search = "" }) {
             <Stories stories={stories} user={user} profile={profile} />
             <Composer user={user} profile={profile} />
             <div className="feed-filter">
-              <button className={`feed-filter-btn ${filter === "global" ? "active" : ""}`} type="button" onClick={() => setFilter("global")}>Global</button>
-              <button className={`feed-filter-btn ${filter === "following" ? "active" : ""}`} type="button" onClick={() => setFilter("following")}>A seguir</button>
+              <button className={`feed-filter-btn ${filter === "global" ? "active" : ""}`} type="button" onClick={() => setFilter("global")}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <path d="M12 3a15 15 0 0 1 0 18" />
+                  <path d="M12 3a15 15 0 0 0 0 18" />
+                </svg>
+                Global
+              </button>
+              <button className={`feed-filter-btn ${filter === "following" ? "active" : ""}`} type="button" onClick={() => setFilter("following")}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <polyline points="17 11 19 13 23 9" />
+                </svg>
+                A seguir
+              </button>
             </div>
             <div>
               {posts.loading ? <Loading /> : null}

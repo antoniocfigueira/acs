@@ -3054,8 +3054,10 @@ body.drawer-open #drawer * { pointer-events: auto; touch-action: auto; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   transition: color .2s ease, background .2s ease, border-color .2s ease, transform .15s ease;
 }
+.feed-filter-btn svg { flex-shrink: 0; }
 .feed-filter-btn:hover { color: var(--text); background: rgba(255,255,255,.07); }
 .feed-filter-btn:active { transform: scale(.96); }
 .feed-filter-btn.active {
