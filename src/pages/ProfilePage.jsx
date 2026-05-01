@@ -108,7 +108,10 @@ function EditProfileModal({ profile, onClose }) {
         photoURL: form.photoURL.trim(),
         nameColor: form.nameColor || null,
         nameStyle: form.nameStyle || null,
-        profileTheme: form.profileTheme || null
+        profileTheme: form.profileTheme || null,
+        unlockedNameColors: colorOptions.filter(Boolean),
+        unlockedNameStyles: styleOptions.filter(Boolean),
+        unlockedProfileThemes: themeOptions.filter(Boolean)
       });
       toast("Perfil atualizado");
       onClose();
@@ -118,9 +121,25 @@ function EditProfileModal({ profile, onClose }) {
       setBusy(false);
     }
   };
-  const colorOptions = ["", ...(Array.isArray(profile.unlockedNameColors) ? profile.unlockedNameColors : [])];
-  const styleOptions = ["", ...(Array.isArray(profile.unlockedNameStyles) ? profile.unlockedNameStyles : [])];
-  const themeOptions = ["", ...(Array.isArray(profile.unlockedProfileThemes) ? profile.unlockedProfileThemes : [])];
+  const colorOptions = [...new Set(["", ...(Array.isArray(profile.unlockedNameColors) ? profile.unlockedNameColors : []), profile.nameColor || ""])];
+  const styleOptions = [...new Set(["", ...(Array.isArray(profile.unlockedNameStyles) ? profile.unlockedNameStyles : []), profile.nameStyle || ""])];
+  const themeOptions = [...new Set(["", ...(Array.isArray(profile.unlockedProfileThemes) ? profile.unlockedProfileThemes : []), profile.profileTheme || ""])];
+  const colorLabel = (value) => ({
+    "": "Padrao",
+    "#22d3ee": "Azul",
+    "#ec4899": "Rosa",
+    "#22c55e": "Verde"
+  })[value] || value;
+  const styleLabel = (value) => ({ "": "Sem efeito", gold: "Dourado", grad: "Gradiente" })[value] || value;
+  const themeLabel = (value) => ({
+    "": "Sem tema",
+    flames: "Chamas",
+    aurora: "Aurora",
+    neon: "Neon Grid",
+    galaxy: "Galaxia",
+    cyber: "Cyber HUD",
+    sakura: "Sakura"
+  })[value] || value;
 
   return (
     <SheetModal title="Editar perfil" onClose={onClose}>
@@ -133,23 +152,37 @@ function EditProfileModal({ profile, onClose }) {
         <input className="input" placeholder="Nome" value={form.name} onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))} style={{ padding: "11px 14px" }} />
         <textarea className="input" placeholder="Bio" value={form.bio} maxLength="180" rows="4" onChange={(event) => setForm((prev) => ({ ...prev, bio: event.target.value }))} style={{ padding: "11px 14px", fontFamily: "inherit", resize: "vertical" }} />
         <input className="input" placeholder="URL da foto" value={form.photoURL} onChange={(event) => setForm((prev) => ({ ...prev, photoURL: event.target.value }))} style={{ padding: "11px 14px" }} />
-        <div className="settings-row-hint">Personalizacao comprada</div>
-        <div className="profile-unlock-grid">
-          {colorOptions.map((value) => (
-            <button key={value || "default-color"} className={`profile-unlock-option ${form.nameColor === value ? "active" : ""}`} type="button" onClick={() => setForm((prev) => ({ ...prev, nameColor: value }))}>
-              <span style={value ? { color: value } : null}>{value ? "Cor" : "Padrao"}</span>
-            </button>
-          ))}
-          {styleOptions.map((value) => (
-            <button key={value || "default-style"} className={`profile-unlock-option ${form.nameStyle === value ? "active" : ""}`} type="button" onClick={() => setForm((prev) => ({ ...prev, nameStyle: value }))}>
-              <span className={value === "gold" ? "name-gold" : value === "grad" ? "name-grad-anim" : ""}>{value ? value : "Sem efeito"}</span>
-            </button>
-          ))}
-          {themeOptions.map((value) => (
-            <button key={value || "default-theme"} className={`profile-unlock-option ${form.profileTheme === value ? "active" : ""}`} type="button" onClick={() => setForm((prev) => ({ ...prev, profileTheme: value }))}>
-              {value ? value : "Sem tema"}
-            </button>
-          ))}
+        <div className="profile-edit-perks">
+          <div className="profile-edit-perk-section">
+            <div className="profile-edit-perk-title">Cores do nome</div>
+            <div className="profile-unlock-grid">
+              {colorOptions.map((value) => (
+                <button key={value || "default-color"} className={`profile-unlock-option ${form.nameColor === value ? "active" : ""}`} type="button" onClick={() => setForm((prev) => ({ ...prev, nameColor: value }))}>
+                  <span style={value ? { color: value } : null}>{colorLabel(value)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="profile-edit-perk-section">
+            <div className="profile-edit-perk-title">Efeitos do nome</div>
+            <div className="profile-unlock-grid">
+              {styleOptions.map((value) => (
+                <button key={value || "default-style"} className={`profile-unlock-option ${form.nameStyle === value ? "active" : ""}`} type="button" onClick={() => setForm((prev) => ({ ...prev, nameStyle: value }))}>
+                  <span className={value === "gold" ? "name-gold" : value === "grad" ? "name-grad-anim" : ""}>{styleLabel(value)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="profile-edit-perk-section">
+            <div className="profile-edit-perk-title">Temas de perfil</div>
+            <div className="profile-unlock-grid profile-unlock-grid--themes">
+              {themeOptions.map((value) => (
+                <button key={value || "default-theme"} className={`profile-unlock-option ${form.profileTheme === value ? "active" : ""}`} type="button" onClick={() => setForm((prev) => ({ ...prev, profileTheme: value }))}>
+                  {themeLabel(value)}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         <button className="btn-primary" type="button" onClick={save} disabled={busy}>{busy ? "A guardar" : "Guardar"}</button>
       </div>

@@ -547,13 +547,13 @@ function ChatMessage({ message, previous, user, profile }) {
   };
 
   const author = {
-    name: message.name || "Anonimo",
-    username: message.username || "",
-    photoURL: message.photoURL || "",
-    isAdmin: !!message.isAdmin,
-    role: message.role,
-    nameColor: message.nameColor,
-    nameStyle: message.nameStyle
+    name: mine ? profile?.name || message.name || "Anonimo" : message.name || "Anonimo",
+    username: mine ? profile?.username || message.username || "" : message.username || "",
+    photoURL: mine ? profile?.photoURL || message.photoURL || "" : message.photoURL || "",
+    isAdmin: mine ? !!profile?.isAdmin : !!message.isAdmin,
+    role: mine ? profile?.role || message.role : message.role,
+    nameColor: mine ? profile?.nameColor || message.nameColor : message.nameColor,
+    nameStyle: mine ? profile?.nameStyle || message.nameStyle : message.nameStyle
   };
 
   if (message.type === "game" && message.gameId) {

@@ -8,6 +8,7 @@ export function useKeyboardViewport({ enabled = true, scrollRef } = {}) {
 
     const isMobileLike = () => window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 820;
     let pollId = null;
+    let resetId = null;
 
     const apply = () => {
       const layoutH = window.innerHeight;
@@ -16,6 +17,7 @@ export function useKeyboardViewport({ enabled = true, scrollRef } = {}) {
       const kbHeight = Math.max(0, layoutH - visualH - offsetTop);
       const keyboardOpen = isMobileLike() && kbHeight > 0;
       document.body.classList.toggle("keyboard-open", keyboardOpen);
+      document.documentElement.style.setProperty("--alfa-viewport-height", keyboardOpen ? `${visualH}px` : "100dvh");
       if (keyboardOpen) {
         document.body.style.height = `${visualH}px`;
         document.body.style.minHeight = `${visualH}px`;
@@ -24,6 +26,17 @@ export function useKeyboardViewport({ enabled = true, scrollRef } = {}) {
         document.body.style.minHeight = "";
       }
       if (offsetTop !== 0) window.scrollTo(0, 0);
+    };
+
+    const forceReset = () => {
+      if (isTextEntryFocused()) return;
+      document.body.classList.remove("keyboard-open");
+      document.body.style.height = "";
+      document.body.style.minHeight = "";
+      document.documentElement.style.setProperty("--alfa-viewport-height", "100dvh");
+      const node = scrollRef?.current;
+      if (node) node.scrollTop = node.scrollHeight;
+      window.scrollTo(0, 0);
     };
 
     const isTextEntryFocused = () => {
@@ -67,8 +80,10 @@ export function useKeyboardViewport({ enabled = true, scrollRef } = {}) {
     };
 
     const focusOut = () => {
+      if (resetId) clearTimeout(resetId);
       setTimeout(apply, 60);
       setTimeout(apply, 260);
+      resetId = setTimeout(forceReset, 520);
       poll();
     };
 
@@ -86,9 +101,11 @@ export function useKeyboardViewport({ enabled = true, scrollRef } = {}) {
       document.removeEventListener("focusin", focusIn);
       document.removeEventListener("focusout", focusOut);
       if (pollId) clearInterval(pollId);
+      if (resetId) clearTimeout(resetId);
       document.body.classList.remove("keyboard-open");
       document.body.style.height = "";
       document.body.style.minHeight = "";
+      document.documentElement.style.removeProperty("--alfa-viewport-height");
     };
   }, [enabled, scrollRef]);
 }

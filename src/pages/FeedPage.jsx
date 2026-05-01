@@ -18,7 +18,7 @@ import {
   where
 } from "firebase/firestore";
 import { Archive, Bell, Bug, Camera, ChevronLeft, Edit3, Image as ImageIcon, LogOut, Mail, Menu, Newspaper, Search, Settings, Shield, SlidersHorizontal, Star, Store, Trash2, X } from "lucide-react";
-import { BottomNav, GradientDefs, PageFrame } from "../components/Shell.jsx";
+import { BottomNav, GradientDefs, LegacySettingsIcon, PageFrame } from "../components/Shell.jsx";
 import { SheetModal, SideDrawer } from "../components/Modal.jsx";
 import { NotificationsButton, NotificationsModal } from "../components/Notifications.jsx";
 import { PostCard } from "../components/PostCard.jsx";
@@ -136,7 +136,8 @@ function useRoles(enabled = true) {
 function itemIsUnlocked(profile, item) {
   if (item.price === 0) return true;
   if (!item.unlockField || item.unlockValue === undefined) return false;
-  return Array.isArray(profile?.[item.unlockField]) && profile[item.unlockField].includes(item.unlockValue);
+  const activeByLegacyField = item.apply && Object.entries(item.apply).some(([key, value]) => value && profile?.[key] === value);
+  return activeByLegacyField || (Array.isArray(profile?.[item.unlockField]) && profile[item.unlockField].includes(item.unlockValue));
 }
 
 function Composer({ user, profile }) {
@@ -233,7 +234,7 @@ function Composer({ user, profile }) {
                 <Bell size={16} />
               </button>
             ) : null}
-            <button className="btn-ghost tap" type="button" style={{ padding: "8px 12px", fontSize: 13 }} title="Adicionar sondagem" onClick={() => setPollOpen(true)}>
+            <button className="btn-ghost tap poll-tool-btn" type="button" style={{ padding: "8px 12px", fontSize: 13 }} title="Adicionar sondagem" onClick={() => setPollOpen(true)}>
               <SlidersHorizontal size={16} />
             </button>
             <button className="btn-primary" type="button" style={{ padding: "8px 18px", fontSize: 13 }} disabled={busy || (!text.trim() && !media)} onClick={publish}>
@@ -410,11 +411,11 @@ function StoryViewer({ stories, user, onClose }) {
     }
   };
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 220, background: "rgba(0,0,0,.92)", display: "grid", placeItems: "center" }} onClick={next}>
-      <button className="icon-btn tap" type="button" aria-label="Fechar" onClick={(event) => { event.stopPropagation(); onClose(); }} style={{ position: "absolute", top: 14, right: 14 }}>
+    <div className="story-viewer-react" style={{ position: "fixed", inset: 0, zIndex: 220, background: "rgba(0,0,0,.92)", display: "grid", placeItems: "center" }} onClick={next}>
+      <button className="icon-btn tap story-viewer-close" type="button" aria-label="Fechar" onClick={(event) => { event.stopPropagation(); onClose(); }}>
         <X size={22} />
       </button>
-      {story.uid === user.uid ? <button className="btn-ghost" type="button" onClick={(event) => { event.stopPropagation(); deleteStory(); }} style={{ position: "absolute", top: 14, left: 14 }}>Apagar</button> : null}
+      {story.uid === user.uid ? <button className="story-viewer-delete tap" type="button" onClick={(event) => { event.stopPropagation(); deleteStory(); }}>Apagar</button> : null}
       {story.mediaType === "video" ? <video src={story.mediaURL} controls autoPlay style={{ maxWidth: "100vw", maxHeight: "86vh" }} /> : <img src={story.mediaURL} alt="" style={{ maxWidth: "100vw", maxHeight: "86vh", objectFit: "contain" }} />}
       {story.text ? <div style={{ position: "absolute", left: 20, right: 20, bottom: "calc(28px + env(safe-area-inset-bottom))", textAlign: "center", color: "white", fontWeight: 700, fontSize: 20, textShadow: "0 2px 12px rgba(0,0,0,.9)", whiteSpace: "pre-wrap" }}>{story.text}</div> : null}
     </div>
@@ -547,27 +548,47 @@ function ShopModal({ user, profile, onClose }) {
       toast(`Erro: ${err.message}`, "error");
     }
   };
-  const rows = [...SHOP_ITEMS, ...SHOP_PROFILE_THEMES];
+  const rows = [
+    ...SHOP_ITEMS,
+    { id: "__profile_themes", separator: true, title: "Temas de perfil", sub: "Fundos animados para a tua pagina de perfil" },
+    ...SHOP_PROFILE_THEMES
+  ];
   return (
-    <SheetModal title={`Loja · ${profile.points || 0} pts`} onClose={onClose}>
-      <div style={{ maxHeight: "65vh", overflowY: "auto" }}>
+    <SheetModal title="Loja" onClose={onClose}>
+      <div className="shop-content-modern">
+        <div className="shop-points-card">
+          <span>Os teus pontos</span>
+          <strong className="grad-text">{profile.points || 0}</strong>
+        </div>
+        <div className="shop-section-title">Customizacao de nome</div>
         {rows.map((item) => {
+          if (item.separator) {
+            return (
+              <div className="shop-section-heading" key={item.id}>
+                <div className="shop-section-title">{item.title}</div>
+                <div className="shop-section-sub">{item.sub}</div>
+              </div>
+            );
+          }
           const active = item.apply && Object.entries(item.apply).every(([key, value]) => (profile[key] || null) === value);
-          const disabled = active || (profile.points || 0) < item.price;
+          const owned = itemIsUnlocked(profile, item);
+          const disabled = active || owned || (!owned && (profile.points || 0) < item.price);
           return (
-            <div className="shop-item" key={item.id}>
+            <div className={`shop-item ${owned && item.price > 0 ? "owned" : ""}`} key={item.id}>
               <div className="shop-item-icon">{item.preview}</div>
               <div className="shop-item-body">
                 <div className="shop-item-title">{item.name}</div>
                 <div className="shop-item-sub">{item.sub}</div>
+                {owned && item.price > 0 ? <div className="shop-owned-badge">Comprado</div> : null}
               </div>
               <div className="shop-price">{item.price} pts</div>
               <button className="shop-buy-btn" type="button" disabled={disabled} onClick={() => item.action ? (setActionItem(item), setActionValue("")) : buy(item)}>
-                {active ? "Ativo" : disabled ? "Sem pts" : item.price === 0 ? "Aplicar" : "Comprar"}
+                {active ? "Ativo" : owned ? "Comprado" : disabled ? "Sem pts" : item.price === 0 ? "Aplicar" : "Comprar"}
               </button>
             </div>
           );
         })}
+        <div className="shop-coming-soon">Mais perks brevemente...</div>
       </div>
       {actionItem ? (
         <SheetModal title={actionItem.action === "changeUsername" ? "Mudar username" : "Timeout 24h"} onClose={() => setActionItem(null)}>
@@ -802,41 +823,41 @@ function FeedMenu({ onClose, onSearch, onRanking, onShop, onBugs, onArchive, onS
         </div>
 
         <div className="drawer-section drawer-nav">
-          <button className="drawer-item w-full" type="button" onClick={() => open(onSearch)}>
+          <button className="drawer-item w-full" style={{ "--drawer-item-index": 0 }} type="button" onClick={() => open(onSearch)}>
             <DrawerIcon><Search size={18} /></DrawerIcon>
             <span className="drawer-label">Pesquisar</span>
           </button>
-          <button className="drawer-item w-full" type="button" onClick={() => { onClose(); routeTo("news.html"); }}>
+          <button className="drawer-item w-full" style={{ "--drawer-item-index": 1 }} type="button" onClick={() => { onClose(); routeTo("news.html"); }}>
             <DrawerIcon><Newspaper size={18} /></DrawerIcon>
             <span className="drawer-label">Alfa News</span>
           </button>
-          <button className="drawer-item w-full dm-item" type="button" onClick={() => { onClose(); routeTo("dm.html"); }}>
+          <button className="drawer-item w-full dm-item" style={{ "--drawer-item-index": 2 }} type="button" onClick={() => { onClose(); routeTo("dm.html"); }}>
             <DrawerIcon><Mail size={18} /></DrawerIcon>
             <span className="drawer-label">Mensagens Privadas</span>
           </button>
-          <button className="drawer-item w-full" type="button" onClick={() => open(onRanking)}>
+          <button className="drawer-item w-full" style={{ "--drawer-item-index": 3 }} type="button" onClick={() => open(onRanking)}>
             <DrawerIcon className="star-wrap"><Star size={18} fill="#fde047" stroke="#facc15" /></DrawerIcon>
             <span className="drawer-label">Ranking</span>
           </button>
-          <button className="drawer-item w-full" type="button" onClick={() => open(onShop)}>
+          <button className="drawer-item w-full" style={{ "--drawer-item-index": 4 }} type="button" onClick={() => open(onShop)}>
             <DrawerIcon className="shop-wrap"><Store size={18} /></DrawerIcon>
             <span className="drawer-label">Loja</span>
           </button>
-          <button className="drawer-item w-full" type="button" onClick={() => open(onArchive)}>
+          <button className="drawer-item w-full" style={{ "--drawer-item-index": 5 }} type="button" onClick={() => open(onArchive)}>
             <DrawerIcon><Archive size={18} /></DrawerIcon>
             <span className="drawer-label">Arquivo</span>
           </button>
-          <button className="drawer-item w-full" type="button" onClick={() => open(onSettings)}>
+          <button className="drawer-item w-full" style={{ "--drawer-item-index": 6 }} type="button" onClick={() => open(onSettings)}>
             <DrawerIcon><Settings size={18} /></DrawerIcon>
             <span className="drawer-label">Definicoes</span>
           </button>
           {profile?.isAdmin ? (
-            <button className="drawer-item w-full" id="drawerAdminBtn" type="button" onClick={() => open(onAdmin)}>
+            <button className="drawer-item w-full" id="drawerAdminBtn" style={{ "--drawer-item-index": 7 }} type="button" onClick={() => open(onAdmin)}>
               <DrawerIcon className="god-wrap"><Shield size={18} /></DrawerIcon>
               <span className="drawer-label">God mode</span>
             </button>
           ) : null}
-          <button className="drawer-item w-full" type="button" onClick={() => open(onBugs)}>
+          <button className="drawer-item w-full" style={{ "--drawer-item-index": profile?.isAdmin ? 8 : 7 }} type="button" onClick={() => open(onBugs)}>
             <DrawerIcon><Bug size={18} /></DrawerIcon>
             <span className="drawer-label">{profile?.isAdmin ? "Bugs reports" : "Bugs / Report"}</span>
           </button>
@@ -1369,7 +1390,7 @@ export function FeedPage() {
       <GradientDefs />
       <header className="app-header app-header-centered">
         <div className="app-header-left">
-          <button className="icon-btn tap" type="button" aria-label="Definicoes" onClick={() => setModal("settings")}><Settings size={22} /></button>
+          <button className="icon-btn tap" type="button" aria-label="Definicoes" onClick={() => setModal("settings")}><LegacySettingsIcon size={22} /></button>
         </div>
         <div className="app-header-title">
           <div className="logo grad-text">Alfa Club</div>
