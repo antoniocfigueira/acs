@@ -586,14 +586,14 @@ export function DMPage({ search }) {
       </AppHeader>
 
       {authLoading ? <div className="dm-list"><Loading /></div> : null}
-      {error ? <div className="dm-list"><Empty title="Nao foi possivel abrir as mensagens." detail={error.message} /></div> : null}
+      {error ? <div className="dm-list"><Empty title="Não foi possível abrir as mensagens." detail={error.message} /></div> : null}
       {!authLoading && user && profile && inThread ? (
         <Thread chatId={chatId} otherUid={otherUid} user={user} profile={profile} onOtherLoaded={setOther} />
       ) : null}
       {!authLoading && user && profile && !inThread ? (
         <div className="dm-list">
           {inbox.loading ? <Loading /> : null}
-          {inbox.error ? <Empty title="Nao foi possivel carregar as conversas." detail={inbox.error.message} /> : null}
+          {inbox.error ? <Empty title="Não foi possível carregar as conversas." detail={inbox.error.message} /> : null}
           {!inbox.loading && !inbox.error && !inbox.rows.length ? <Empty emoji="💬" title="Ainda sem conversas." detail={'Vai ao perfil de alguem e clica em "Mensagem" para comecar.'} /> : null}
           {inbox.rows.map((row) => <InboxRow key={row.meta.id} row={row} />)}
         </div>

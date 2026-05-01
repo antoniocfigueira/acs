@@ -32,15 +32,15 @@ import { Avatar, Empty, Loading, RoleBadges, StyledName, toast } from "../lib/ui
 
 const SHOP_ITEMS = [
   { id: "color_cyan", unlockField: "unlockedNameColors", unlockValue: "#22d3ee", name: "Cor Azul", sub: "Nome em azul", price: 50, preview: <span className="name-sample" style={{ color: "#22d3ee" }}>Nome</span>, apply: { nameColor: "#22d3ee" } },
-  { id: "color_pink", unlockField: "unlockedNameColors", unlockValue: "#ec4899", name: "Cor Rosa", sub: "Nome em rosa", price: 50, preview: <span className="name-sample" style={{ color: "#ec4899" }}>Nome</span>, apply: { nameColor: "#ec4899" } },
+  { id: "color_pink", unlockField: "unlockedNameColors", unlockValue: "#ec4899", name: "Cor Rosa", sub: "Nome em rosa (Gay)", price: 50, preview: <span className="name-sample" style={{ color: "#ec4899" }}>Nome</span>, apply: { nameColor: "#ec4899" } },
   { id: "color_green", unlockField: "unlockedNameColors", unlockValue: "#22c55e", name: "Cor Verde", sub: "Nome em verde", price: 50, preview: <span className="name-sample" style={{ color: "#22c55e" }}>Nome</span>, apply: { nameColor: "#22c55e" } },
   { id: "color_red", unlockField: "unlockedNameColors", unlockValue: "#ef4444", name: "Cor Vermelha", sub: "Nome em vermelho", price: 50, preview: <span className="name-sample" style={{ color: "#ef4444" }}>Nome</span>, apply: { nameColor: "#ef4444" } },
   { id: "color_purple", unlockField: "unlockedNameColors", unlockValue: "#a855f7", name: "Cor Roxa", sub: "Nome em roxo", price: 50, preview: <span className="name-sample" style={{ color: "#a855f7" }}>Nome</span>, apply: { nameColor: "#a855f7" } },
   { id: "color_orange", unlockField: "unlockedNameColors", unlockValue: "#f97316", name: "Cor Laranja", sub: "Nome em laranja", price: 50, preview: <span className="name-sample" style={{ color: "#f97316" }}>Nome</span>, apply: { nameColor: "#f97316" } },
-  { id: "color_gold", unlockField: "unlockedNameColors", unlockValue: "gold", name: "Cor Dourada", sub: "Nome dourado com glow", price: 50, preview: <span className="name-sample name-gold">Nome</span>, apply: { nameColor: "gold", nameStyle: null } },
-  { id: "grad_anim", unlockField: "unlockedNameStyles", unlockValue: "grad", name: "Degrade animado", sub: "Nome com gradiente animado", price: 30, preview: <span className="name-sample name-grad-anim">Nome</span>, apply: { nameStyle: "grad" } },
-  { id: "glow_name", unlockField: "unlockedNameStyles", unlockValue: "glow", name: "Glow", sub: "Nome com brilho da tua cor", price: 50, preview: <span className="name-sample name-glow" style={{ "--name-glow-base": "#ec4899" }}>Nome</span>, apply: { nameStyle: "glow" } },
-  { id: "reset_color", name: "Remover modificacoes", sub: "Voltar a cor padrao", price: 0, preview: <span className="name-sample">Nome</span>, apply: { nameColor: null, nameStyle: null } },
+  { id: "color_gold", unlockField: "unlockedNameColors", unlockValue: "gold", name: "Cor Dourada", sub: "Nome dourado com glow", price: 300, preview: <span className="name-sample name-gold">Nome</span>, apply: { nameColor: "gold", nameStyle: null } },
+  { id: "grad_anim", unlockField: "unlockedNameStyles", unlockValue: "grad", name: "Degrade animado", sub: "Nome com gradiente animado", price: 100, preview: <span className="name-sample name-grad-anim">Nome</span>, apply: { nameStyle: "grad" } },
+  { id: "glow_name", unlockField: "unlockedNameStyles", unlockValue: "glow", name: "Glow", sub: "Nome com brilho da tua cor", price: 80, preview: <span className="name-sample name-glow" style={{ "--name-glow-base": "#ec4899" }}>Nome</span>, apply: { nameStyle: "glow" } },
+  { id: "reset_color", name: "Remover modificações", sub: "Voltar a cor padrão", price: 0, preview: <span className="name-sample">Nome</span>, apply: { nameColor: null, nameStyle: null } },
   { id: "change_user", name: "Mudar @username", sub: "Escolher um novo @", price: 300, preview: <span style={{ fontWeight: 700 }}>@</span>, action: "changeUsername" },
   { id: "timeout_user", name: "Timeout 24h", sub: "Silenciar um user 24h", price: 50, preview: <span style={{ fontWeight: 700, opacity: 0.7 }}>mute</span>, action: "timeoutUser" }
 ];
@@ -52,7 +52,7 @@ const SHOP_PROFILE_THEMES = [
   { id: "ptheme_neon", unlockField: "unlockedProfileThemes", unlockValue: "neon", name: "Neon Grid", sub: "Grelha vaporwave animada", price: 100, preview: <span className="pt-preview pt-preview-neon" />, apply: { profileTheme: "neon" } },
   { id: "ptheme_galaxy", unlockField: "unlockedProfileThemes", unlockValue: "galaxy", name: "Galaxia", sub: "Estrelas e nebulosa", price: 100, preview: <span className="pt-preview pt-preview-galaxy" />, apply: { profileTheme: "galaxy" } },
   { id: "ptheme_cyber", unlockField: "unlockedProfileThemes", unlockValue: "cyber", name: "Cyber HUD", sub: "Linhas neon em scan", price: 100, preview: <span className="pt-preview pt-preview-cyber" />, apply: { profileTheme: "cyber" } },
-  { id: "ptheme_sakura", unlockField: "unlockedProfileThemes", unlockValue: "sakura", name: "Sakura", sub: "Petalas a cair", price: 100, preview: <span className="pt-preview pt-preview-sakura" />, apply: { profileTheme: "sakura" } }
+  { id: "ptheme_sakura", unlockField: "unlockedProfileThemes", unlockValue: "sakura", name: "Sakura", sub: "Pétalas a cair", price: 100, preview: <span className="pt-preview pt-preview-sakura" />, apply: { profileTheme: "sakura" } }
 ];
 
 const APP_THEMES = [
@@ -249,7 +249,7 @@ function Composer({ user, profile }) {
               <div className="poll-preview">
                 <SlidersHorizontal size={18} style={{ color: "#ec4899", flexShrink: 0 }} />
                 <div className="poll-preview-label">{media.poll.question}</div>
-                <div className="poll-preview-type">{media.poll.kind === "slider" ? "Slider 0-100" : `${media.poll.options?.length || 0} opcoes`}</div>
+                <div className="poll-preview-type">{media.poll.kind === "slider" ? "Slider 0-100" : `${media.poll.options?.length || 0} opções`}</div>
               </div>
             ) : null}
             <button type="button" className="remove-media" aria-label="Remover" onClick={() => setMedia(null)}>x</button>
@@ -307,7 +307,7 @@ function PollBuilderModal({ onClose, onCreate }) {
     }
     const clean = options.map((item) => item.trim()).filter(Boolean).slice(0, 5);
     if (clean.length < 2) {
-      toast("Precisas de pelo menos 2 opcoes.", "error");
+      toast("Precisas de pelo menos 2 opções.", "error");
       return;
     }
     onCreate({ kind: "options", question: q, options: clean.map((item) => ({ text: item, votes: 0 })) });
@@ -316,7 +316,7 @@ function PollBuilderModal({ onClose, onCreate }) {
     <SheetModal title="Criar sondagem" onClose={onClose}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ display: "flex", gap: 8 }}>
-          <button type="button" className={`${kind === "options" ? "btn-primary" : "btn-ghost"} tap`} style={{ flex: 1, padding: 10, fontSize: 13 }} onClick={() => setKind("options")}>Opcoes</button>
+          <button type="button" className={`${kind === "options" ? "btn-primary" : "btn-ghost"} tap`} style={{ flex: 1, padding: 10, fontSize: 13 }} onClick={() => setKind("options")}>Opções</button>
           <button type="button" className={`${kind === "slider" ? "btn-primary" : "btn-ghost"} tap`} style={{ flex: 1, padding: 10, fontSize: 13 }} onClick={() => setKind("slider")}>Slider 0-100</button>
         </div>
         <div className="field">
@@ -325,13 +325,13 @@ function PollBuilderModal({ onClose, onCreate }) {
         </div>
         {kind === "options" ? (
           <div>
-            <label style={{ display: "block", fontSize: 11, color: "var(--muted)", textTransform: "uppercase", marginBottom: 6, paddingLeft: 4 }}>Opcoes</label>
+            <label style={{ display: "block", fontSize: 11, color: "var(--muted)", textTransform: "uppercase", marginBottom: 6, paddingLeft: 4 }}>Opções</label>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {options.map((value, index) => (
-                <input key={index} className="input" placeholder={`Opcao ${index + 1}`} value={value} onChange={(event) => setOptions((prev) => prev.map((item, i) => i === index ? event.target.value : item))} style={{ padding: "10px 12px" }} />
+                <input key={index} className="input" placeholder={`Opção ${index + 1}`} value={value} onChange={(event) => setOptions((prev) => prev.map((item, i) => i === index ? event.target.value : item))} style={{ padding: "10px 12px" }} />
               ))}
             </div>
-            {options.length < 5 ? <button className="btn-ghost tap" type="button" style={{ marginTop: 8, padding: "8px 12px", fontSize: 12 }} onClick={() => setOptions((prev) => [...prev, ""])}>+ Opcao</button> : null}
+            {options.length < 5 ? <button className="btn-ghost tap" type="button" style={{ marginTop: 8, padding: "8px 12px", fontSize: 12 }} onClick={() => setOptions((prev) => [...prev, ""])}>+ Opção</button> : null}
           </div>
         ) : (
           <div style={{ fontSize: 13, color: "var(--muted)", padding: 10, background: "rgba(255,255,255,.04)", border: "1px solid var(--border)", borderRadius: 10 }}>
@@ -622,7 +622,7 @@ function ShopModal({ user, profile, onClose }) {
       if (!username) return;
       const target = await getDocs(query(collection(db, "users"), where("username", "==", username), fsLimit(1)));
       if (target.empty) {
-        toast("Utilizador nao encontrado", "error");
+        toast("Utilizador não encontrado", "error");
         return;
       }
       extra.targetUid = target.docs[0].id;
@@ -667,7 +667,7 @@ function ShopModal({ user, profile, onClose }) {
           <span>Os teus pontos</span>
           <strong className="grad-text">{profile.points || 0}</strong>
         </div>
-        <div className="shop-section-title">Customizacao de nome</div>
+        <div className="shop-section-title">Customização de nome</div>
         {rows.map((item) => {
           if (item.separator) {
             return (
@@ -808,12 +808,12 @@ function SettingsPanel({ user, profile, onClose, onBack, onAdmin }) {
     if (next) {
       if (!("Notification" in window)) {
         next = false;
-        toast("Este browser nao suporta notificacoes.", "error");
+        toast("Este browser não suporta notificações.", "error");
       } else {
         const token = await initPush({ user, requestPermission: true });
         next = !!token;
         if (next) toast("Push activado", "success");
-        else toast("Nao consegui registar este dispositivo para push.", "error");
+        else toast("Não consegui registar este dispositivo para push.", "error");
       }
     } else {
       toast("Push desactivado");
@@ -835,7 +835,7 @@ function SettingsPanel({ user, profile, onClose, onBack, onAdmin }) {
           <button className="icon-btn tap" type="button" aria-label="Voltar" onClick={onBack}>
             <ChevronLeft size={20} />
           </button>
-          <div style={{ fontWeight: 700 }}>Definicoes</div>
+          <div style={{ fontWeight: 700 }}>Definições</div>
         </div>
 
         <div className="settings-section">
@@ -852,7 +852,7 @@ function SettingsPanel({ user, profile, onClose, onBack, onAdmin }) {
         </div>
 
         <div className="settings-section">
-          <div className="settings-title">Notificacoes</div>
+          <div className="settings-title">Notificações</div>
           <label className="settings-row">
             <span className="settings-row-text">
               <span className="settings-row-label">Push notifications</span>
@@ -865,7 +865,7 @@ function SettingsPanel({ user, profile, onClose, onBack, onAdmin }) {
             ["dm", "DMs"],
             ["globalChat", "Chat global"],
             ["news", "Alfa News"],
-            ["engagement", "Likes e comentarios"]
+            ["engagement", "Likes e comentários"]
           ].map(([key, label]) => (
             <label className="settings-row" key={key}>
               <span className="settings-row-text">
@@ -889,13 +889,13 @@ function SettingsPanel({ user, profile, onClose, onBack, onAdmin }) {
             <div className="settings-title">Admin</div>
             <button className="drawer-item w-full" type="button" onClick={() => { onClose(); onAdmin?.(); }}>
               <DrawerIcon className="god-wrap"><Shield size={18} /></DrawerIcon>
-              <span className="drawer-label">God mode</span>
+              <span className="drawer-label">God Mode</span>
             </button>
             <button className="drawer-item w-full" type="button" onClick={() => { onClose(); onAdmin?.(); }}>
               <DrawerIcon><Edit3 size={18} /></DrawerIcon>
               <span className="drawer-label">Editar users, roles e pontos</span>
             </button>
-            <div className="settings-row-hint" style={{ marginTop: 8 }}>As opcoes especiais de admin aparecem aqui e no menu hamburger, como na versao antiga.</div>
+            <div className="settings-row-hint" style={{ marginTop: 8 }}>OPÇÕES ADMIN</div>
           </div>
         ) : null}
 
@@ -974,17 +974,17 @@ function FeedMenu({ onClose, onSearch, onRanking, onShop, onBugs, onArchive, onS
           </button>
           <button className="drawer-item w-full" style={{ "--drawer-item-index": 6 }} type="button" onClick={() => open(onSettings)}>
             <DrawerIcon><Settings size={18} /></DrawerIcon>
-            <span className="drawer-label">Definicoes</span>
+            <span className="drawer-label">Definições</span>
           </button>
           {profile?.isAdmin ? (
             <button className="drawer-item w-full" id="drawerAdminBtn" style={{ "--drawer-item-index": 7 }} type="button" onClick={() => open(onAdmin)}>
               <DrawerIcon className="god-wrap"><Shield size={18} /></DrawerIcon>
-              <span className="drawer-label">God mode</span>
+              <span className="drawer-label">God Mode</span>
             </button>
           ) : null}
           <button className="drawer-item w-full" style={{ "--drawer-item-index": profile?.isAdmin ? 8 : 7 }} type="button" onClick={() => open(onBugs)}>
             <DrawerIcon><Bug size={18} /></DrawerIcon>
-            <span className="drawer-label">{profile?.isAdmin ? "Bugs reports" : "Bugs / Report"}</span>
+            <span className="drawer-label">{profile?.isAdmin ? "Bugs Report" : "Bugs / Report"}</span>
           </button>
         </div>
 
@@ -1077,7 +1077,7 @@ function AdminPanelModal({ onClose }) {
   };
 
   return (
-    <SheetModal title="God mode" onClose={onClose}>
+    <SheetModal title="God Mode" onClose={onClose}>
       <input className="input" placeholder="Filtrar docs" value={filter} onChange={(event) => setFilter(event.target.value)} style={{ width: "100%", padding: 10, marginBottom: 10 }} />
       <div style={{ maxHeight: "65vh", overflowY: "auto" }}>
         {filtered.map((item) => (
@@ -1324,15 +1324,15 @@ function ArchiveModal({ user, profile, onClose, onBack }) {
       updatedAt: serverTimestamp()
     };
     if (!data.name) {
-      toast("Da um nome a seccao.", "error");
+      toast("Da um nome a secção.", "error");
       return;
     }
     if (editor?.item?.id) {
       await updateDoc(doc(db, "archiveSections", editor.item.id), data);
-      toast("Seccao atualizada.", "success");
+      toast("Secção atualizada.", "success");
     } else {
       await addDoc(collection(db, "archiveSections"), { ...data, createdAt: serverTimestamp(), createdBy: user.uid });
-      toast("Seccao criada.", "success");
+      toast("Secção criada.", "success");
     }
     setEditor(null);
   };
@@ -1362,13 +1362,13 @@ function ArchiveModal({ user, profile, onClose, onBack }) {
   };
 
   const deleteSection = async (section) => {
-    if (!confirm(`Apagar a seccao "${section.name || "Arquivo"}"?`)) return;
+    if (!confirm(`Apagar a secção "${section.name || "Arquivo"}"?`)) return;
     try {
       const snap = await getDocs(collection(db, "archiveSections", section.id, "entries"));
       await Promise.all(snap.docs.map((item) => deleteDoc(item.ref)));
       await deleteDoc(doc(db, "archiveSections", section.id));
       if (openSection?.id === section.id) setOpenSection(null);
-      toast("Seccao apagada.", "success");
+      toast("Secção apagada.", "success");
     } catch (err) {
       toast(`Erro: ${err.message}`, "error");
     }
@@ -1396,16 +1396,16 @@ function ArchiveModal({ user, profile, onClose, onBack }) {
             )}
             <div id="archiveTitle" style={{ fontWeight: 700 }}>{openSection?.name || "Arquivo"}</div>
             <button className="btn-ghost tap" type="button" style={{ padding: "7px 10px", fontSize: 12 }} onClick={() => setEditor(openSection ? { type: "entry" } : { type: "section" })} disabled={!!openSection && !canManageSection(openSection)}>
-              {openSection ? "+ Entrada" : "+ Seccao"}
+              {openSection ? "+ Entrada" : "+ Secção"}
             </button>
           </div>
 
         {!openSection ? (
           <div id="archiveSectionsList" className="settings-section" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {loading ? <Loading /> : null}
-            {!loading && archiveError ? <Empty title="Nao consegui carregar o arquivo." detail={archiveError} /> : null}
-            {!loading && !archiveError && !sections.length ? <Empty title="Ainda nao ha seccoes." detail="Cria uma seccao para organizar o arquivo." /> : null}
-            {!loading && !archiveError && sections.length > 0 && !visibleSections.length ? <Empty title="Sem seccoes visiveis." detail="Ha seccoes no arquivo, mas nenhuma esta disponivel para as tuas roles." /> : null}
+            {!loading && archiveError ? <Empty title="Não consegui carregar o arquivo." detail={archiveError} /> : null}
+            {!loading && !archiveError && !sections.length ? <Empty title="Ainda não há secções." detail="Cria uma secção para organizar o arquivo." /> : null}
+            {!loading && !archiveError && sections.length > 0 && !visibleSections.length ? <Empty title="Sem secções visíveis." detail="Há secções no arquivo, mas nenhuma está disponível para as tuas roles." /> : null}
             {visibleSections.map((section) => (
               <div className="archive-section-card" key={section.id}>
                 <button type="button" className="archive-section-body" onClick={() => setOpenSection(section)}>
@@ -1432,8 +1432,8 @@ function ArchiveModal({ user, profile, onClose, onBack }) {
           </div>
         ) : (
           <div id="archiveEntriesList" className="settings-section" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {entriesError ? <Empty title="Nao consegui carregar esta seccao." detail={entriesError} /> : null}
-            {!entriesError && !entries.length ? <Empty title="Esta seccao esta vazia." detail={canManageSection(openSection) ? "Adiciona uma entrada." : ""} /> : null}
+            {entriesError ? <Empty title="Não consegui carregar esta secção." detail={entriesError} /> : null}
+            {!entriesError && !entries.length ? <Empty title="Esta secção esta vazia." detail={canManageSection(openSection) ? "Adiciona uma entrada." : ""} /> : null}
             {entries.map((entry) => (
               <div className="archive-entry-card" key={entry.id}>
                 {entry.imageURL ? <div className="archive-entry-image"><img src={entry.imageURL} alt="" loading="lazy" /></div> : null}
@@ -1481,11 +1481,11 @@ function ArchiveSectionEditor({ item, sectionsCount, isAdmin, roles = [], onClos
     set("requiredRoles", [...next].join(", "));
   };
   return (
-    <SheetModal title={item ? "Editar seccao" : "Nova seccao"} onClose={onClose}>
+    <SheetModal title={item ? "Editar secção" : "Nova secção"} onClose={onClose}>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <input className="input" placeholder="Nome" value={values.name} onChange={(event) => set("name", event.target.value)} style={{ padding: 11 }} />
-        <input className="input" placeholder="Descricao" value={values.description} onChange={(event) => set("description", event.target.value)} style={{ padding: 11 }} />
-        <input className="input" placeholder="Icone" value={values.icon} onChange={(event) => set("icon", event.target.value)} style={{ padding: 11 }} />
+        <input className="input" placeholder="Descrição" value={values.description} onChange={(event) => set("description", event.target.value)} style={{ padding: 11 }} />
+        <input className="input" placeholder="Ícone" value={values.icon} onChange={(event) => set("icon", event.target.value)} style={{ padding: 11 }} />
         <input className="input" type="number" placeholder="Ordem" value={values.order} onChange={(event) => set("order", event.target.value)} style={{ padding: 11 }} />
         {isAdmin ? (
           <div className="role-picker-list">
@@ -1496,7 +1496,7 @@ function ArchiveSectionEditor({ item, sectionsCount, isAdmin, roles = [], onClos
                 <span>{role.name || role.id}</span>
               </label>
             ))}
-            {!roles.length ? <div className="empty" style={{ padding: 10 }}>Sem roles definidas. Cria-as no God mode.</div> : null}
+            {!roles.length ? <div className="empty" style={{ padding: 10 }}>Sem roles definidas.</div> : null}
           </div>
         ) : null}
         <button className="btn-primary" type="button" onClick={() => onSave(values)}>Guardar</button>
@@ -1576,7 +1576,7 @@ export function FeedPage({ search = "" }) {
       <GradientDefs />
       <header className="app-header app-header-centered">
         <div className="app-header-left">
-          <button className="icon-btn tap" type="button" aria-label="Definicoes" onClick={() => setModal("settings")}><LegacySettingsIcon size={22} /></button>
+          <button className="icon-btn tap" type="button" aria-label="Definições" onClick={() => setModal("settings")}><LegacySettingsIcon size={22} /></button>
         </div>
         <div className="app-header-title">
           <div
@@ -1603,7 +1603,7 @@ export function FeedPage({ search = "" }) {
 
       <div className="container" ref={containerRef}>
         {authLoading ? <Loading /> : null}
-        {error ? <Empty title="Nao foi possivel abrir a app." detail={error.message} /> : null}
+        {error ? <Empty title="ão foi possível abrir a app." detail={error.message} /> : null}
         {!authLoading && user && profile ? (
           <>
             <Stories stories={stories} user={user} profile={profile} />
@@ -1630,7 +1630,7 @@ export function FeedPage({ search = "" }) {
             <div>
               {posts.loading ? <Loading /> : null}
               {posts.error ? <Empty title="Erro ao carregar o feed." detail={posts.error.message} /> : null}
-              {!posts.loading && !posts.error && !posts.posts.length ? <Empty title="Ainda nao ha posts." detail="Publica o primeiro." /> : null}
+              {!posts.loading && !posts.error && !posts.posts.length ? <Empty title="Ainda não há posts." detail="Publica o primeiro." /> : null}
               {posts.posts.map((post) => <PostCard key={post.id} post={post} user={user} profile={profile} />)}
             </div>
           </>

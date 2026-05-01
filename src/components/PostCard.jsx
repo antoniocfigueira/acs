@@ -61,7 +61,7 @@ export function PostCard({ post, user, profile, compact = false }) {
       const postRef = doc(db, "posts", post.id);
       await runTransaction(db, async (tx) => {
         const [voteSnap, postSnap] = await Promise.all([tx.get(voteRef), tx.get(postRef)]);
-        if (!postSnap.exists()) throw new Error("Post ja nao existe");
+        if (!postSnap.exists()) throw new Error("Post já não existe");
         const current = voteSnap.exists() ? voteSnap.data().type : null;
         let dLikes = 0;
         let dDislikes = 0;
@@ -150,7 +150,7 @@ export function PostCard({ post, user, profile, compact = false }) {
           </div>
         </div>
         {profile?.isAdmin ? (
-          <button className="btn-icon tap post-admin-btn" type="button" aria-label="Admin" title="Acoes admin" onClick={() => setAdminOpen(true)}>
+          <button className="btn-icon tap post-admin-btn" type="button" aria-label="Admin" title="Ações Admin" onClick={() => setAdminOpen(true)}>
             <MoreHorizontal size={16} />
           </button>
         ) : null}
@@ -191,7 +191,7 @@ export function PostCard({ post, user, profile, compact = false }) {
       ) : null}
       {editOpen ? <EditPostModal post={post} onClose={() => setEditOpen(false)} /> : null}
       {adminOpen ? (
-        <SheetModal title="Acoes admin" onClose={() => setAdminOpen(false)}>
+        <SheetModal title="Ações Admin" onClose={() => setAdminOpen(false)}>
           <button className="drawer-item w-full" type="button" onClick={pinPost}><Pin size={18} /><span className="drawer-label">{isPinned ? "Desafixar post" : "Fixar por 24h"}</span></button>
           <button className="drawer-item w-full" type="button" onClick={() => setEditOpen(true)}><Edit3 size={18} /><span className="drawer-label">Editar post</span></button>
           <button className="drawer-item w-full" type="button" onClick={deletePost}><Trash2 size={18} /><span className="drawer-label">Apagar post</span></button>
@@ -274,7 +274,7 @@ function PollBlock({ post, user }) {
       const postRef = doc(db, "posts", post.id);
       await runTransaction(db, async (tx) => {
         const [voteSnap, postSnap] = await Promise.all([tx.get(voteRef), tx.get(postRef)]);
-        if (!postSnap.exists()) throw new Error("Post ja nao existe");
+        if (!postSnap.exists()) throw new Error("Post já não existe");
         const freshPoll = postSnap.data().poll;
         const options = (freshPoll.options || []).map((o) => ({ text: o.text, votes: o.votes || 0 }));
         const prev = voteSnap.exists() ? voteSnap.data().choice : null;
@@ -303,7 +303,7 @@ function PollBlock({ post, user }) {
       const postRef = doc(db, "posts", post.id);
       await runTransaction(db, async (tx) => {
         const [voteSnap, postSnap] = await Promise.all([tx.get(voteRef), tx.get(postRef)]);
-        if (!postSnap.exists()) throw new Error("Post ja nao existe");
+        if (!postSnap.exists()) throw new Error("Post já não existe");
         const freshPoll = postSnap.data().poll || {};
         const prev = voteSnap.exists() ? voteSnap.data().value : null;
         let sum = freshPoll.sum || 0;
@@ -334,7 +334,7 @@ function PollBlock({ post, user }) {
         </div>
         <button type="button" className="btn-primary tap poll-slider-vote" onClick={() => voteSlider(sliderValue)}>Votar</button>
         <div className="poll-slider-result">
-          <div className="cell"><div className="val">{avg}</div><div className="label">Media</div></div>
+          <div className="cell"><div className="val">{avg}</div><div className="label">Média</div></div>
           <div className="cell"><div className="val">{poll.count || 0}</div><div className="label">Votos</div></div>
           <div className="cell"><div className="val">{myPollVote?.value ?? "-"}</div><div className="label">Teu voto</div></div>
         </div>

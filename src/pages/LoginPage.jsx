@@ -12,12 +12,12 @@ function friendlyError(err) {
     "auth/invalid-email": "Email invalido.",
     "auth/invalid-credential": "Email ou password errados.",
     "auth/wrong-password": "Password errada.",
-    "auth/user-not-found": "Utilizador nao encontrado.",
-    "auth/email-already-in-use": "Esse email ja esta registado. Usa outro ou clica em Entrar.",
+    "auth/user-not-found": "Utilizador não encontrado.",
+    "auth/email-already-in-use": "Esse email já está registado. Usa outro ou clica em Entrar.",
     "auth/weak-password": "Password muito fraca (minimo 6 caracteres).",
     "auth/too-many-requests": "Demasiadas tentativas. Espera um pouco.",
-    "auth/network-request-failed": "Sem ligacao a internet.",
-    "auth/operation-not-allowed": "Email/Password nao esta ativado no Firebase.",
+    "auth/network-request-failed": "Sem ligação a internet.",
+    "auth/operation-not-allowed": "Email/Password não está ativado no Firebase.",
     "auth/api-key-not-valid": "API key do Firebase invalida.",
     "auth/invalid-api-key": "API key do Firebase invalida."
   };
@@ -155,7 +155,7 @@ export function LoginPage() {
                 <button type="submit" className="btn-primary submit-btn" disabled={busy}>
                   <span className="btn-label">{busy ? <span className="dots">A processar</span> : "Entrar"}</span>
                 </button>
-                <div className="small-link">Ainda nao tens conta? <a href="#" onClick={(event) => { event.preventDefault(); setTab("register"); }} className="grad-text font-semibold">Es burro.</a></div>
+                <div className="small-link">Ainda não tens conta? <a href="#" onClick={(event) => { event.preventDefault(); setTab("register"); }} className="grad-text font-semibold">Es burro.</a></div>
               </form>
 
               <form className={`panel ${tab === "register" ? "active" : ""}`} autoComplete="on" onSubmit={submitRegister}>

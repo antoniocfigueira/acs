@@ -1320,14 +1320,12 @@ body.games-page .dark-ds .games-bottom-screen {
   opacity: 1;
   filter: brightness(1);
   transition:
-    opacity 420ms ease 120ms,
-    filter 420ms ease 120ms;
+    opacity 900ms ease,
+    filter 900ms ease;
 }
 
-body.games-page .games-page-shell.is-booting .dark-ds .games-bottom-screen {
-  opacity: 0;
-  filter: brightness(0);
-  pointer-events: none;
+body.games-page .games-page-shell.is-booting .dark-ds .games-bottom-screen::after {
+  opacity: 1;
 }
 
 .ds-game-grid {
@@ -2393,16 +2391,6 @@ body.games-page .dark-ds .ds-start-btn:disabled {
   right: 12px;
   bottom: 12px;
   animation-direction: reverse;
-}
-
-.preview-steampunk .pv-pipe {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 48%;
-  height: 5px;
-  background: linear-gradient(90deg, transparent, #8a5a2b 18%, #d6b15f 50%, #2dd4bf 82%, transparent);
-  box-shadow: 0 0 10px rgba(45,212,191,.22);
 }
 
 @keyframes steamGear {

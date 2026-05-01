@@ -39,7 +39,7 @@ function useProfile(username, currentUser, currentProfile, refreshKey = 0) {
         }
         const snap = await getDocs(query(collection(db, "users"), where("username", "==", username), fsLimit(1)));
         if (!alive) return;
-        if (snap.empty) setState({ loading: false, profile: null, error: new Error("Perfil nao encontrado.") });
+        if (snap.empty) setState({ loading: false, profile: null, error: new Error("Perfil não encontrado.") });
         else setState({ loading: false, profile: { uid: snap.docs[0].id, ...snap.docs[0].data() }, error: null });
       } catch (err) {
         if (alive) setState({ loading: false, profile: null, error: err });
@@ -162,7 +162,7 @@ function EditProfileModal({ profile, onClose }) {
         <div className="profile-edit-perks">
           <button className="profile-edit-perks-toggle tap" type="button" onClick={() => setCustomOpen((value) => !value)} aria-expanded={customOpen}>
             <span>
-              <strong>Personalizacao comprada</strong>
+              <strong>Personalização comprada</strong>
               <small>{[colorLabel(form.nameColor), styleLabel(form.nameStyle), themeLabel(form.profileTheme)].filter(Boolean).join(" · ")}</small>
             </span>
             <span aria-hidden="true">{customOpen ? "−" : "+"}</span>
@@ -323,8 +323,8 @@ export function ProfilePage({ search }) {
       <AppHeader title="Perfil" right={<button className="icon-btn tap" type="button" aria-label="Partilhar" onClick={share}><Share2 size={22} /></button>} />
       <div className="container" ref={containerRef}>
         {authLoading || viewed.loading ? <Loading /> : null}
-        {authError ? <Empty title="Nao foi possivel abrir o perfil." detail={authError.message} /> : null}
-        {viewed.error ? <Empty title="Perfil nao encontrado." detail={viewed.error.message} /> : null}
+        {authError ? <Empty title="Não foi possível abrir o perfil." detail={authError.message} /> : null}
+        {viewed.error ? <Empty title="Perfil não encontrado." detail={viewed.error.message} /> : null}
         {!authLoading && viewed.profile ? (
           <>
             <div className={`profile-hero ${viewed.profile.profileTheme ? `profile-theme-${viewed.profile.profileTheme}` : ""}`}>
@@ -378,8 +378,8 @@ export function ProfilePage({ search }) {
       </div>
       <BottomNav active="profile.html" />
       {editOpen && viewed.profile ? <EditProfileModal profile={viewed.profile} onClose={() => setEditOpen(false)} /> : null}
-      {followList === "followers" ? <FollowListModal title="Seguidores" uids={followers} empty="Ainda ninguem segue este perfil." onClose={() => setFollowList(null)} /> : null}
-      {followList === "following" ? <FollowListModal title="A seguir" uids={following} empty="Este perfil ainda nao segue ninguem." onClose={() => setFollowList(null)} /> : null}
+      {followList === "followers" ? <FollowListModal title="Seguidores" uids={followers} empty="Ainda ninguém segue este perfil." onClose={() => setFollowList(null)} /> : null}
+      {followList === "following" ? <FollowListModal title="A seguir" uids={following} empty="Este perfil ainda não segue ninguém." onClose={() => setFollowList(null)} /> : null}
     </PageFrame>
   );
 }

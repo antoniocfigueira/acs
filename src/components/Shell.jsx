@@ -213,7 +213,7 @@ export function HeaderNewsButton({ onClick }) {
 
 export function HeaderNotifButton({ onClick }) {
   return (
-    <button className="icon-btn tap" type="button" aria-label="Notificacoes" onClick={onClick}>
+    <button className="icon-btn tap" type="button" aria-label="Notificações" onClick={onClick}>
       <Bell size={22} />
     </button>
   );

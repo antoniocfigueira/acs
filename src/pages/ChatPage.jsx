@@ -273,7 +273,7 @@ function GamePicker({ user, profile, onlineUsers, onClose }) {
               </button>
             );
           }) : (
-            <div className="empty" style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>Ninguem online para jogar de momento.</div>
+            <div className="empty" style={{ padding: 24, textAlign: "center", color: "var(--muted)" }}>Ninguém online para jogar de momento.</div>
           )}
         </div>
       )}
@@ -322,7 +322,7 @@ function GameMessage({ gameId, user }) {
     });
   }, [gameId]);
 
-  if (missing) return <div className="game-card game-missing">Este jogo ja nao existe.</div>;
+  if (missing) return <div className="game-card game-missing">Este jogo ja não existe.</div>;
   if (!game) return <div className="game-card game-loading">A carregar jogo...</div>;
 
   return (
@@ -759,7 +759,7 @@ function OnlineUsersModal({ onlineUsers, onClose }) {
             <span className="dm-online-dot" title="Online" />
           </button>
         )) : (
-          <div className="empty" style={{ padding: 14 }}>Ninguem online de momento.</div>
+          <div className="empty" style={{ padding: 14 }}>Ninguém online de momento.</div>
         )}
       </div>
     </SheetModal>
@@ -891,7 +891,7 @@ export function ChatPage() {
 
       <div className="chat-wrap" ref={wrapRef}>
         {authLoading || loading ? <Loading label="A carregar mensagens" /> : null}
-        {error ? <Empty title="Nao foi possivel abrir o chat." detail={error.message} /> : null}
+        {error ? <Empty title="Não foi possível abrir o chat." detail={error.message} /> : null}
         {!authLoading && !loading && !messages.length ? <Empty emoji="💬" title="Ainda sem mensagens." detail="Escreve a primeira." /> : null}
         {user && profile
           ? messages.map((message, index) => (

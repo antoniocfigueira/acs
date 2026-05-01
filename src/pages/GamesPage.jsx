@@ -184,7 +184,7 @@ function runStep(state, input) {
 }
 
 const GAME_SLOTS = [
-  { id: "alfaJump", title: "Alfa Jump", status: "Disponivel", available: true },
+  { id: "alfaJump", title: "Alfa Jump", status: "Disponível", available: true },
   { id: "empty1", title: "Slot vazio", status: "Em breve" },
   { id: "empty2", title: "Slot vazio", status: "Em breve" },
   { id: "empty3", title: "Slot vazio", status: "Em breve" },
@@ -229,7 +229,7 @@ function AlfaJumpArtwork({ best }) {
       </div>
       <div className="alfa-art-title">
         <strong>Alfa Jump</strong>
-        <span>Inclina o telemovel para subir</span>
+        <span>Inclina o telemovel para subir. Jogo de Merda.</span>
       </div>
     </div>
   );
@@ -304,7 +304,7 @@ function GamesHub({ profile, onStart }) {
           <div className="ds-action-row">
             <div className="ds-selected-label">
               <strong>{selected.title}</strong>
-              <span>{selected.available ? "Pronto para jogar" : "Ainda nao disponivel"}</span>
+              <span>{selected.available ? "Pronto para jogar" : "Ainda não disponível"}</span>
             </div>
             <button className="ds-start-btn tap" type="button" disabled={!selected.available || opening} onClick={openSelected}>
               <Play size={16} />
@@ -341,7 +341,7 @@ function JumpGame({ user, profile, onExit }) {
     const shopPoints = Math.floor(finalScore / 10);
     setEarned(shopPoints);
     if (!user?.uid) {
-      toast("Nao consegui guardar o recorde.", "error");
+      toast("Não consegui guardar o recorde.", "error");
       return;
     }
     try {
@@ -364,7 +364,7 @@ function JumpGame({ user, profile, onExit }) {
       if (shopPoints > 0) toast(`+${shopPoints} pontos da loja`);
     } catch (err) {
       console.warn("game reward:", err?.message || err);
-      toast("Nao consegui guardar os pontos.", "error");
+      toast("Não consegui guardar os pontos.", "error");
     }
   }, [user?.uid]);
 
@@ -383,7 +383,7 @@ function JumpGame({ user, profile, onExit }) {
       if (OrientationEvent && typeof OrientationEvent.requestPermission === "function") {
         const result = await OrientationEvent.requestPermission();
         if (result !== "granted") {
-          toast("Movimento nao autorizado.");
+          toast("Movimento não autorizado.");
           return;
         }
       }
@@ -392,7 +392,7 @@ function JumpGame({ user, profile, onExit }) {
       toast("Controlo por movimento ativo.");
     } catch (err) {
       console.warn("tilt:", err?.message || err);
-      toast("Este dispositivo nao deu acesso ao acelerometro.");
+      toast("Este dispositivo não deu acesso ao acelerómetro.");
     }
   }, []);
 
@@ -539,7 +539,7 @@ export function GamesPage() {
       <PageFrame page="games.html">
         <GradientDefs />
         <AppHeader title="Jogos" />
-        <div className="empty">Nao foi possível carregar os jogos.</div>
+        <div className="empty">Não foi possível carregar os jogos.</div>
         <BottomNav active="games.html" />
       </PageFrame>
     );

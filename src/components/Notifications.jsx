@@ -23,7 +23,7 @@ export function useNotifications(user) {
 export function NotificationsButton({ user, onOpen }) {
   const { unread } = useNotifications(user);
   return (
-    <button className="icon-btn tap" type="button" aria-label="Notificacoes" onClick={onOpen}>
+    <button className="icon-btn tap" type="button" aria-label="Notificações" onClick={onOpen}>
       <Bell size={22} />
       {unread ? <span className="icon-badge-dot" /> : null}
     </button>
@@ -54,11 +54,11 @@ export function NotificationsModal({ user, onClose }) {
           <button className="icon-btn tap" type="button" aria-label="Fechar" onClick={onClose}>
             <X size={18} />
           </button>
-          <div style={{ fontWeight: 700 }}>Notificacoes</div>
+          <div style={{ fontWeight: 700 }}>Notificações</div>
         </div>
         <div id="notifsList">
         {loading ? <Loading /> : null}
-        {!loading && !items.length ? <Empty title="Sem notificacoes." /> : null}
+        {!loading && !items.length ? <Empty title="Sem notificações." /> : null}
         {items.map((item) => (
           <button key={item.id} type="button" className={`notif ${item.read ? "" : "unread"}`} style={{ width: "100%", textAlign: "left", border: 0, background: "transparent", color: "inherit" }} onClick={() => openItem(item)}>
             <Avatar user={{ name: item.fromName, username: item.fromUsername, photoURL: item.fromPhoto }} size={34} />

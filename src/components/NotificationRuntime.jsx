@@ -21,7 +21,7 @@ export function NotificationRuntime({ user }) {
       if (!firstSnap && unread > previousUnread && latestUnread) {
         showLocalNotification({
           title: `🔔 ${latestUnread.fromName || "Alfa Club"}`,
-          body: latestUnread.text || "Tens uma nova notificacao",
+          body: latestUnread.text || "Tens uma nova notificação",
           tag: `notif-${latestUnread.postId || latestUnread.id}`,
           data: { url: "./index.html?notifs=1" },
           source: "client",
@@ -63,7 +63,7 @@ export function NotificationRuntime({ user }) {
           fromPhoto: item.authorPhoto || "",
           newsId: item.id,
           newsTitle: item.title || "",
-          text: "nova publicacao nos Alfa News",
+          text: "nova publicação nos Alfa News",
           read: false,
           at: serverTimestamp()
         }).catch(() => {});
