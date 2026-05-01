@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Bell, Home, MessageCircle, Newspaper, Plus, Send, User, Users } from "lucide-react";
+import { Bell, Home, MessageCircle, Newspaper, Power, Send, User, Users } from "lucide-react";
 import { legacyPages } from "../legacy-pages.generated.js";
 import { hrefFor, navigateHref, routeTo } from "../lib/navigation.js";
 
@@ -132,7 +132,7 @@ export function BottomNav({ active }) {
           routeTo("games.html");
         }}
       >
-        <Plus size={22} />
+        <Power size={22} />
       </a>
       <NavLink page="chat.html" active={active === "chat.html"} label="Chat Global">
         <LegacyChatIcon />

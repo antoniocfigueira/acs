@@ -37,7 +37,14 @@ export function useKeyboardViewport({ enabled = true, scrollRef } = {}) {
       document.body.classList.remove("keyboard-open");
       document.body.style.height = "";
       document.body.style.minHeight = "";
-      document.documentElement.style.setProperty("--alfa-viewport-height", `${Math.round(vv.height || window.innerHeight)}px`);
+      const fullHeight = Math.max(
+        maxViewportHeight,
+        window.innerHeight || 0,
+        document.documentElement.clientHeight || 0,
+        vv.height || 0
+      );
+      maxViewportHeight = fullHeight;
+      document.documentElement.style.setProperty("--alfa-viewport-height", `${Math.round(fullHeight)}px`);
       const node = scrollRef?.current;
       if (node) node.scrollTop = node.scrollHeight;
       window.scrollTo(0, 0);
@@ -87,7 +94,8 @@ export function useKeyboardViewport({ enabled = true, scrollRef } = {}) {
       if (resetId) clearTimeout(resetId);
       setTimeout(apply, 60);
       setTimeout(apply, 260);
-      resetId = setTimeout(forceReset, 520);
+      setTimeout(forceReset, 520);
+      resetId = setTimeout(forceReset, 980);
       poll();
     };
 

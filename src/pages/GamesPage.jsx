@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { doc, increment, serverTimestamp, setDoc } from "firebase/firestore";
-import { ChevronLeft, Coins, Gamepad2, Play, RotateCcw, Smartphone, Trophy } from "lucide-react";
+import { Battery, ChevronLeft, Coins, Play, RotateCcw, Smartphone, Trophy, Wifi } from "lucide-react";
 import { AppHeader, BottomNav, GradientDefs, PageFrame } from "../components/Shell.jsx";
 import { useAuthProfile } from "../lib/auth.js";
 import { db } from "../lib/firebase.js";
+import { normalizeLocalHref, routeTo } from "../lib/navigation.js";
 import { Loading, toast } from "../lib/ui.jsx";
 
 const GAME_W = 360;
@@ -53,7 +54,7 @@ function drawRoundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function drawGame(ctx, state, tiltReady) {
+function drawGame(ctx, state, tiltReady, started) {
   ctx.clearRect(0, 0, GAME_W, GAME_H);
 
   const bg = ctx.createLinearGradient(0, 0, 0, GAME_H);
@@ -124,7 +125,7 @@ function drawGame(ctx, state, tiltReady) {
   ctx.fillText(`${state.score}`, 18, 34);
   ctx.font = "600 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
   ctx.fillStyle = "rgba(255,255,255,.52)";
-  ctx.fillText(tiltReady ? "inclina para controlar" : "setas/toque, ou ativa o movimento", 18, 52);
+  ctx.fillText(started ? (tiltReady ? "inclina para controlar" : "teclado de teste") : "ativa o acelerometro para começar", 18, 52);
 }
 
 function runStep(state, input) {
@@ -179,52 +180,143 @@ function runStep(state, input) {
   return next;
 }
 
+const GAME_SLOTS = [
+  { id: "alfaJump", title: "Alfa Jump", status: "Disponivel", available: true },
+  { id: "empty1", title: "Slot vazio", status: "Em breve" },
+  { id: "empty2", title: "Slot vazio", status: "Em breve" },
+  { id: "empty3", title: "Slot vazio", status: "Em breve" },
+  { id: "empty4", title: "Slot vazio", status: "Em breve" },
+  { id: "empty5", title: "Slot vazio", status: "Em breve" }
+];
+
+function AlfaJumpIcon({ small = false }) {
+  return (
+    <span className={`alfa-jump-icon ${small ? "small" : ""}`} aria-hidden="true">
+      <span className="jump-sky" />
+      <span className="jump-platform p1" />
+      <span className="jump-platform p2" />
+      <span className="jump-character">
+        <span />
+      </span>
+    </span>
+  );
+}
+
+function EmptyGameIcon() {
+  return (
+    <span className="empty-game-icon" aria-hidden="true">
+      <span />
+    </span>
+  );
+}
+
+function AlfaJumpArtwork({ best }) {
+  return (
+    <div className="alfa-artwork">
+      <div className="alfa-art-bg" />
+      <div className="alfa-art-score">
+        <span>Recorde</span>
+        <strong>{best}</strong>
+      </div>
+      <div className="art-platform one" />
+      <div className="art-platform two" />
+      <div className="art-platform three" />
+      <div className="art-character">
+        <span />
+      </div>
+      <div className="alfa-art-title">
+        <strong>Alfa Jump</strong>
+        <span>Inclina o telemovel para subir</span>
+      </div>
+    </div>
+  );
+}
+
+function EmptyArtwork({ index }) {
+  return (
+    <div className="empty-artwork">
+      <div className="empty-art-grid" aria-hidden="true">
+        {Array.from({ length: 18 }).map((_, item) => <span key={item} />)}
+      </div>
+      <div className="empty-art-center">
+        <EmptyGameIcon />
+        <strong>Slot {index}</strong>
+        <span>Jogo em breve</span>
+      </div>
+    </div>
+  );
+}
+
 function GamesHub({ profile, onStart }) {
+  const [selectedId, setSelectedId] = useState("alfaJump");
+  const [opening, setOpening] = useState(false);
   const best = profile?.gameStats?.alfaJumpBest || 0;
   const points = profile?.points || 0;
-  return (
-    <section className="games-hub">
-      <div className="games-hero">
-        <div>
-          <span className="games-eyebrow">Arcade Alfa</span>
-          <h1>Jogos</h1>
-          <p>Jogos singleplayer para ganhar pontos da loja.</p>
-        </div>
-        <div className="games-points">
-          <Coins size={18} />
-          <span>{points}</span>
-        </div>
-      </div>
+  const now = new Date();
+  const dateLabel = now.toLocaleDateString("pt-PT", { day: "numeric", month: "numeric", weekday: "short" }).replace(".", "");
+  const timeLabel = now.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
+  const selected = GAME_SLOTS.find((game) => game.id === selectedId) || GAME_SLOTS[0];
 
-      <div className="games-device" aria-label="Menu de jogos">
+  const openSelected = () => {
+    if (!selected.available || opening) return;
+    setOpening(true);
+    window.setTimeout(onStart, 360);
+  };
+
+  return (
+    <section className={`games-hub ${opening ? "is-opening-game" : ""}`}>
+      <div className="games-device ds-home dark-ds" aria-label="Menu de jogos">
         <div className="games-top-screen">
-          <div className="games-feature-art">
-            <div className="jump-orb">AJ</div>
-            <div>
-              <strong>Alfa Jump</strong>
-              <span>10 pontos no jogo = 1 ponto da loja</span>
+          <div className="ds-statusbar">
+            <div className="ds-net">
+              <Wifi size={13} />
+              <span>Internet</span>
             </div>
+            <div className="ds-coins">
+              <Coins size={13} />
+              <strong>{points}</strong>
+            </div>
+            <div className="ds-time">{dateLabel} {timeLabel}</div>
+            <Battery size={16} />
+          </div>
+          {selected.id === "alfaJump" ? <AlfaJumpArtwork best={best} /> : <EmptyArtwork index={GAME_SLOTS.findIndex((game) => game.id === selected.id) + 1} />}
+          <div className="ds-boot-logo" aria-hidden="true">
+            <span>AlfaDS</span>
           </div>
         </div>
         <div className="games-hinge" />
         <div className="games-bottom-screen">
-          <button className="game-tile active tap" type="button" onClick={onStart}>
-            <span className="game-cover">
-              <Gamepad2 size={30} />
-            </span>
-            <span className="game-title">Alfa Jump</span>
-            <span className="game-meta">
-              <Trophy size={14} />
-              Recorde {best}
-            </span>
-          </button>
-          <button className="game-tile locked" type="button" disabled>
-            <span className="game-cover muted">
-              <Gamepad2 size={30} />
-            </span>
-            <span className="game-title">Em breve</span>
-            <span className="game-meta">Novo jogo</span>
-          </button>
+          <div className="ds-game-grid">
+            {GAME_SLOTS.map((game, index) => (
+              <button
+                key={game.id}
+                className={`game-tile tap ${selectedId === game.id ? "active" : ""} ${game.available ? "" : "empty-slot"}`.trim()}
+                type="button"
+                aria-label={game.available ? `${game.title} Recorde ${best}` : `Slot ${index + 1} Em breve`}
+                aria-pressed={selectedId === game.id}
+                onClick={() => setSelectedId(game.id)}
+              >
+                <span className={`game-cover ${game.available ? "" : "muted"}`.trim()}>
+                  {game.available ? <AlfaJumpIcon small /> : <EmptyGameIcon />}
+                </span>
+                <span className="game-title" aria-hidden="true">{game.available ? game.title : `Slot ${index + 1}`}</span>
+                <span className="game-meta">
+                  {game.available ? <Trophy size={14} /> : null}
+                  {game.available ? `Recorde ${best}` : game.status}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="ds-action-row">
+            <div className="ds-selected-label">
+              <strong>{selected.title}</strong>
+              <span>{selected.available ? "Pronto para jogar" : "Ainda nao disponivel"}</span>
+            </div>
+            <button className="ds-start-btn tap" type="button" disabled={!selected.available || opening} onClick={openSelected}>
+              <Play size={16} />
+              {opening ? "A abrir..." : "Abrir"}
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -242,6 +334,7 @@ function JumpGame({ user, profile, onExit }) {
   const [gameOver, setGameOver] = useState(false);
   const [earned, setEarned] = useState(0);
   const [tiltReady, setTiltReady] = useState(false);
+  const [started, setStarted] = useState(false);
 
   useEffect(() => {
     bestRef.current = profile?.gameStats?.alfaJumpBest || 0;
@@ -278,7 +371,8 @@ function JumpGame({ user, profile, onExit }) {
     setScore(0);
     setEarned(0);
     setGameOver(false);
-  }, []);
+    setStarted(tiltReady);
+  }, [tiltReady]);
 
   const enableTilt = useCallback(async () => {
     try {
@@ -291,6 +385,7 @@ function JumpGame({ user, profile, onExit }) {
         }
       }
       setTiltReady(true);
+      setStarted(true);
       toast("Controlo por movimento ativo.");
     } catch (err) {
       console.warn("tilt:", err?.message || err);
@@ -312,6 +407,7 @@ function JumpGame({ user, profile, onExit }) {
     const onKeyDown = (event) => {
       if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") inputRef.current.key = -1;
       if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") inputRef.current.key = 1;
+      if (event.key === " " && !started) setStarted(true);
     };
     const onKeyUp = (event) => {
       if (["ArrowLeft", "ArrowRight", "a", "A", "d", "D"].includes(event.key)) inputRef.current.key = 0;
@@ -322,7 +418,7 @@ function JumpGame({ user, profile, onExit }) {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, []);
+  }, [started]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -336,8 +432,8 @@ function JumpGame({ user, profile, onExit }) {
 
     let lastScore = 0;
     const loop = () => {
-      const input = inputRef.current.key || inputRef.current.touch || inputRef.current.tilt || 0;
-      if (!stateRef.current.gameOver) {
+      const input = tiltReady ? inputRef.current.tilt : inputRef.current.key;
+      if (started && !stateRef.current.gameOver) {
         stateRef.current = runStep(stateRef.current, input);
         if (stateRef.current.score !== lastScore) {
           lastScore = stateRef.current.score;
@@ -345,36 +441,12 @@ function JumpGame({ user, profile, onExit }) {
         }
         if (stateRef.current.gameOver) finishGame(stateRef.current.score);
       }
-      drawGame(ctx, stateRef.current, tiltReady);
+      drawGame(ctx, stateRef.current, tiltReady, started);
       frameRef.current = requestAnimationFrame(loop);
     };
     frameRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(frameRef.current);
-  }, [finishGame, tiltReady]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-    const setTouch = (event) => {
-      const rect = canvas.getBoundingClientRect();
-      inputRef.current.touch = event.clientX - rect.left < rect.width / 2 ? -1 : 1;
-    };
-    const clearTouch = () => {
-      inputRef.current.touch = 0;
-    };
-    canvas.addEventListener("pointerdown", setTouch);
-    canvas.addEventListener("pointermove", setTouch);
-    canvas.addEventListener("pointerup", clearTouch);
-    canvas.addEventListener("pointercancel", clearTouch);
-    canvas.addEventListener("pointerleave", clearTouch);
-    return () => {
-      canvas.removeEventListener("pointerdown", setTouch);
-      canvas.removeEventListener("pointermove", setTouch);
-      canvas.removeEventListener("pointerup", clearTouch);
-      canvas.removeEventListener("pointercancel", clearTouch);
-      canvas.removeEventListener("pointerleave", clearTouch);
-    };
-  }, []);
+  }, [finishGame, started, tiltReady]);
 
   const potentialPoints = Math.floor(score / 10);
   return (
@@ -385,7 +457,7 @@ function JumpGame({ user, profile, onExit }) {
         </button>
         <div>
           <strong>Alfa Jump</strong>
-          <span>inclina, toca ou usa as setas</span>
+          <span>joga inclinando o telemovel</span>
         </div>
         <button className="icon-btn tap" type="button" aria-label="Reiniciar" onClick={resetGame}>
           <RotateCcw size={20} />
@@ -409,6 +481,20 @@ function JumpGame({ user, profile, onExit }) {
 
       <div className="jump-stage">
         <canvas ref={canvasRef} className="jump-canvas" aria-label="Alfa Jump" />
+        {!started ? (
+          <div className="jump-overlay">
+            <div className="jump-result jump-start">
+              <Smartphone size={30} />
+              <strong>Movimento</strong>
+              <span>Ativa o acelerometro e inclina o telemovel para controlar.</span>
+              <button className="primary tap" type="button" onClick={enableTilt}>
+                <Smartphone size={18} />
+                Ativar acelerometro
+              </button>
+              <small>Desktop: usa espaço para testar com teclado.</small>
+            </div>
+          </div>
+        ) : null}
         {gameOver ? (
           <div className="jump-overlay">
             <div className="jump-result">
@@ -437,10 +523,45 @@ function JumpGame({ user, profile, onExit }) {
 export function GamesPage() {
   const { loading, user, profile, error } = useAuthProfile({ requireUser: true });
   const [mode, setMode] = useState("hub");
+  const [booting, setBooting] = useState(true);
+  const [closing, setClosing] = useState(false);
   const subtitle = useMemo(() => {
     const points = profile?.points || 0;
     return `${points} pontos da loja`;
   }, [profile?.points]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setBooting(false), 3000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const leaveWithAnimation = useCallback((fn) => {
+    if (closing) return;
+    setClosing(true);
+    window.setTimeout(fn, 540);
+  }, [closing]);
+
+  const interceptLeaving = useCallback((event) => {
+    if (mode !== "hub") return;
+    const backButton = event.target.closest?.("button[aria-label='Voltar']");
+    if (backButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      leaveWithAnimation(() => {
+        if (window.history.length > 1) window.history.back();
+        else routeTo("index.html");
+      });
+      return;
+    }
+
+    const anchor = event.target.closest?.("a[href]");
+    if (!anchor) return;
+    const local = normalizeLocalHref(anchor.getAttribute("href"));
+    if (!local || local.page === "games.html") return;
+    event.preventDefault();
+    event.stopPropagation();
+    leaveWithAnimation(() => routeTo(local.page, local.search, local.hash));
+  }, [leaveWithAnimation, mode]);
 
   if (loading) {
     return (
@@ -466,13 +587,17 @@ export function GamesPage() {
 
   return (
     <PageFrame page="games.html">
-      <GradientDefs />
-      {mode === "hub" ? <AppHeader title="Jogos" subtitle={subtitle} /> : null}
-      {mode === "hub" ? (
-        <GamesHub profile={profile} onStart={() => setMode("jump")} />
-      ) : (
-        <JumpGame user={user} profile={profile} onExit={() => setMode("hub")} />
-      )}
+      <div className="games-page-click-layer" onClickCapture={interceptLeaving}>
+        <GradientDefs />
+        <div className={`games-page-shell ${booting && mode === "hub" ? "is-booting" : ""} ${closing ? "is-closing" : ""}`}>
+          {mode === "hub" ? <AppHeader title="AlfaDS" subtitle={subtitle} /> : null}
+          {mode === "hub" ? (
+            <GamesHub profile={profile} onStart={() => setMode("jump")} />
+          ) : (
+            <JumpGame user={user} profile={profile} onExit={() => setMode("hub")} />
+          )}
+        </div>
+      </div>
       <BottomNav active="games.html" />
     </PageFrame>
   );
