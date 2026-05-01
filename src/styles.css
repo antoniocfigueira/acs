@@ -23,13 +23,13 @@ body.dm-page [data-react-page] {
 }
 
 body.chat-page {
-  height: 100dvh;
+  height: var(--alfa-viewport-height, 100dvh);
   overflow: hidden;
   padding-bottom: 0 !important;
 }
 
 body.chat-page [data-react-page="chat.html"] {
-  height: 100dvh;
+  height: var(--alfa-viewport-height, 100dvh);
   padding-bottom: calc(74px + env(safe-area-inset-bottom)) !important;
   box-sizing: border-box;
 }
@@ -102,10 +102,13 @@ body.chat-page .chat-input {
 
 .bottom-nav a {
   justify-self: center;
+  width: min(74px, 100%);
+  box-sizing: border-box;
 }
 
 .bottom-nav a.create {
   justify-self: center;
+  width: 52px;
 }
 
 .role-badge-button {
@@ -600,23 +603,14 @@ body.dm-page.dm-thread-open .dm-input {
 }
 
 .poll-tool-btn {
-  width: 58px !important;
-  min-width: 58px !important;
-  height: 42px !important;
-  padding: 0 !important;
-  border-radius: 22px !important;
   display: inline-grid !important;
   place-items: center;
-  border: 1px solid rgba(255,255,255,.08) !important;
-  background: rgba(18,18,18,.72) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
-  color: #f7f7f8 !important;
 }
 
 .poll-tool-btn svg,
 .poll-tool-icon {
-  width: 24px;
-  height: 24px;
+  width: 16px;
+  height: 16px;
   display: block;
 }
 

@@ -234,7 +234,7 @@ function Composer({ user, profile }) {
                 <Bell size={16} />
               </button>
             ) : null}
-            <button className="btn-ghost tap poll-tool-btn" type="button" title="Adicionar sondagem" aria-label="Adicionar sondagem" onClick={() => setPollOpen(true)}>
+            <button className="btn-ghost tap poll-tool-btn" type="button" style={{ padding: "8px 12px", fontSize: 13 }} title="Adicionar sondagem" aria-label="Adicionar sondagem" onClick={() => setPollOpen(true)}>
               <PollToolIcon />
             </button>
             <button className="btn-primary" type="button" style={{ padding: "8px 18px", fontSize: 13 }} disabled={busy || (!text.trim() && !media)} onClick={publish}>
@@ -250,7 +250,7 @@ function Composer({ user, profile }) {
 
 function PollToolIcon() {
   return (
-    <svg className="poll-tool-icon" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <svg className="poll-tool-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <rect x="5" y="13" width="2.7" height="6.5" rx="1.35" fill="currentColor" />
       <rect x="10.65" y="7.5" width="2.7" height="12" rx="1.35" fill="currentColor" />
       <rect x="16.3" y="3.8" width="2.7" height="15.7" rx="1.35" fill="currentColor" />

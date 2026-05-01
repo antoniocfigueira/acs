@@ -9,15 +9,20 @@ export function useKeyboardViewport({ enabled = true, scrollRef } = {}) {
     const isMobileLike = () => window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 820;
     let pollId = null;
     let resetId = null;
+    let maxViewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0, vv.height || 0);
 
     const apply = () => {
       const layoutH = window.innerHeight;
       const visualH = vv.height;
       const offsetTop = vv.offsetTop || 0;
+      if (!isTextEntryFocused()) {
+        maxViewportHeight = Math.max(maxViewportHeight, layoutH, document.documentElement.clientHeight || 0, visualH);
+      }
       const kbHeight = Math.max(0, layoutH - visualH - offsetTop);
-      const keyboardOpen = isMobileLike() && kbHeight > 0;
+      const keyboardDelta = Math.max(kbHeight, maxViewportHeight - visualH);
+      const keyboardOpen = isMobileLike() && keyboardDelta > 80 && isTextEntryFocused();
       document.body.classList.toggle("keyboard-open", keyboardOpen);
-      document.documentElement.style.setProperty("--alfa-viewport-height", keyboardOpen ? `${visualH}px` : "100dvh");
+      document.documentElement.style.setProperty("--alfa-viewport-height", `${Math.round(visualH)}px`);
       if (keyboardOpen) {
         document.body.style.height = `${visualH}px`;
         document.body.style.minHeight = `${visualH}px`;
@@ -29,11 +34,10 @@ export function useKeyboardViewport({ enabled = true, scrollRef } = {}) {
     };
 
     const forceReset = () => {
-      if (isTextEntryFocused()) return;
       document.body.classList.remove("keyboard-open");
       document.body.style.height = "";
       document.body.style.minHeight = "";
-      document.documentElement.style.setProperty("--alfa-viewport-height", "100dvh");
+      document.documentElement.style.setProperty("--alfa-viewport-height", `${Math.round(vv.height || window.innerHeight)}px`);
       const node = scrollRef?.current;
       if (node) node.scrollTop = node.scrollHeight;
       window.scrollTo(0, 0);
@@ -89,17 +93,23 @@ export function useKeyboardViewport({ enabled = true, scrollRef } = {}) {
 
     vv.addEventListener("resize", apply);
     vv.addEventListener("scroll", apply);
+    window.addEventListener("resize", apply);
+    window.addEventListener("orientationchange", apply);
     window.addEventListener("scroll", onScroll, { passive: true });
     document.addEventListener("focusin", focusIn);
     document.addEventListener("focusout", focusOut);
+    document.addEventListener("visibilitychange", apply);
     apply();
 
     return () => {
       vv.removeEventListener("resize", apply);
       vv.removeEventListener("scroll", apply);
+      window.removeEventListener("resize", apply);
+      window.removeEventListener("orientationchange", apply);
       window.removeEventListener("scroll", onScroll);
       document.removeEventListener("focusin", focusIn);
       document.removeEventListener("focusout", focusOut);
+      document.removeEventListener("visibilitychange", apply);
       if (pollId) clearInterval(pollId);
       if (resetId) clearTimeout(resetId);
       document.body.classList.remove("keyboard-open");
