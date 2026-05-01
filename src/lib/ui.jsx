@@ -70,7 +70,10 @@ export function Avatar({ user, size = 38, className = "" }) {
 export function StyledName({ user }) {
   const name = user?.name || user?.authorName || "Anónimo";
   if (user?.nameStyle === "gold") return <span className="name-gold">{name}</span>;
-  if (user?.nameStyle === "grad") return <span className="name-grad-anim">{name}</span>;
+  if (user?.nameStyle === "grad") {
+    const baseColor = user?.nameColor || user?.authorNameColor || "#f8fafc";
+    return <span className="name-grad-anim" style={{ "--name-grad-base": baseColor }}>{name}</span>;
+  }
   if (user?.nameColor) return <span style={{ color: user.nameColor }}>{name}</span>;
   return <>{name}</>;
 }

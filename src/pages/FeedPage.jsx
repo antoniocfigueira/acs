@@ -30,24 +30,24 @@ import { uploadMedia } from "../lib/upload.js";
 import { Avatar, Empty, Loading, RoleBadges, StyledName, toast } from "../lib/ui.jsx";
 
 const SHOP_ITEMS = [
-  { id: "color_cyan", unlockField: "unlockedNameColors", unlockValue: "#22d3ee", name: "Cor Azul", sub: "Nome em azul", price: 15, preview: <span className="name-sample" style={{ color: "#22d3ee" }}>Nome</span>, apply: { nameColor: "#22d3ee" } },
-  { id: "color_pink", unlockField: "unlockedNameColors", unlockValue: "#ec4899", name: "Cor Rosa", sub: "Nome em rosa", price: 15, preview: <span className="name-sample" style={{ color: "#ec4899" }}>Nome</span>, apply: { nameColor: "#ec4899" } },
-  { id: "color_green", unlockField: "unlockedNameColors", unlockValue: "#22c55e", name: "Cor Verde", sub: "Nome em verde", price: 15, preview: <span className="name-sample" style={{ color: "#22c55e" }}>Nome</span>, apply: { nameColor: "#22c55e" } },
-  { id: "color_gold", unlockField: "unlockedNameStyles", unlockValue: "gold", name: "Dourado especial", sub: "Cor dourada com glow", price: 100, preview: <span className="name-sample name-gold">Nome</span>, apply: { nameStyle: "gold" } },
+  { id: "color_cyan", unlockField: "unlockedNameColors", unlockValue: "#22d3ee", name: "Cor Azul", sub: "Nome em azul", price: 50, preview: <span className="name-sample" style={{ color: "#22d3ee" }}>Nome</span>, apply: { nameColor: "#22d3ee" } },
+  { id: "color_pink", unlockField: "unlockedNameColors", unlockValue: "#ec4899", name: "Cor Rosa", sub: "Nome em rosa", price: 50, preview: <span className="name-sample" style={{ color: "#ec4899" }}>Nome</span>, apply: { nameColor: "#ec4899" } },
+  { id: "color_green", unlockField: "unlockedNameColors", unlockValue: "#22c55e", name: "Cor Verde", sub: "Nome em verde", price: 50, preview: <span className="name-sample" style={{ color: "#22c55e" }}>Nome</span>, apply: { nameColor: "#22c55e" } },
+  { id: "color_gold", unlockField: "unlockedNameStyles", unlockValue: "gold", name: "Dourado especial", sub: "Cor dourada com glow", price: 50, preview: <span className="name-sample name-gold">Nome</span>, apply: { nameStyle: "gold" } },
   { id: "grad_anim", unlockField: "unlockedNameStyles", unlockValue: "grad", name: "Degrade animado", sub: "Nome com gradiente animado", price: 30, preview: <span className="name-sample name-grad-anim">Nome</span>, apply: { nameStyle: "grad" } },
   { id: "reset_color", name: "Remover modificacoes", sub: "Voltar a cor padrao", price: 0, preview: <span className="name-sample">Nome</span>, apply: { nameColor: null, nameStyle: null } },
-  { id: "change_user", name: "Mudar @username", sub: "Escolher um novo @", price: 50, preview: <span style={{ fontWeight: 700 }}>@</span>, action: "changeUsername" },
+  { id: "change_user", name: "Mudar @username", sub: "Escolher um novo @", price: 300, preview: <span style={{ fontWeight: 700 }}>@</span>, action: "changeUsername" },
   { id: "timeout_user", name: "Timeout 24h", sub: "Silenciar um user 24h", price: 50, preview: <span style={{ fontWeight: 700, opacity: 0.7 }}>mute</span>, action: "timeoutUser" }
 ];
 
 const SHOP_PROFILE_THEMES = [
   { id: "ptheme_none", name: "Nenhum", sub: "Sem tema de perfil", price: 0, preview: <span className="pt-preview pt-preview-none">-</span>, apply: { profileTheme: null } },
-  { id: "ptheme_flames", unlockField: "unlockedProfileThemes", unlockValue: "flames", name: "Chamas", sub: "Perfil em chamas animadas", price: 20, preview: <span className="pt-preview pt-preview-flames" />, apply: { profileTheme: "flames" } },
-  { id: "ptheme_aurora", unlockField: "unlockedProfileThemes", unlockValue: "aurora", name: "Aurora", sub: "Ondas de aurora boreal", price: 20, preview: <span className="pt-preview pt-preview-aurora" />, apply: { profileTheme: "aurora" } },
-  { id: "ptheme_neon", unlockField: "unlockedProfileThemes", unlockValue: "neon", name: "Neon Grid", sub: "Grelha vaporwave animada", price: 25, preview: <span className="pt-preview pt-preview-neon" />, apply: { profileTheme: "neon" } },
-  { id: "ptheme_galaxy", unlockField: "unlockedProfileThemes", unlockValue: "galaxy", name: "Galaxia", sub: "Estrelas e nebulosa", price: 25, preview: <span className="pt-preview pt-preview-galaxy" />, apply: { profileTheme: "galaxy" } },
-  { id: "ptheme_cyber", unlockField: "unlockedProfileThemes", unlockValue: "cyber", name: "Cyber HUD", sub: "Linhas neon em scan", price: 30, preview: <span className="pt-preview pt-preview-cyber" />, apply: { profileTheme: "cyber" } },
-  { id: "ptheme_sakura", unlockField: "unlockedProfileThemes", unlockValue: "sakura", name: "Sakura", sub: "Petalas a cair", price: 30, preview: <span className="pt-preview pt-preview-sakura" />, apply: { profileTheme: "sakura" } }
+  { id: "ptheme_flames", unlockField: "unlockedProfileThemes", unlockValue: "flames", name: "Chamas", sub: "Perfil em chamas animadas", price: 100, preview: <span className="pt-preview pt-preview-flames" />, apply: { profileTheme: "flames" } },
+  { id: "ptheme_aurora", unlockField: "unlockedProfileThemes", unlockValue: "aurora", name: "Aurora", sub: "Ondas de aurora boreal", price: 100, preview: <span className="pt-preview pt-preview-aurora" />, apply: { profileTheme: "aurora" } },
+  { id: "ptheme_neon", unlockField: "unlockedProfileThemes", unlockValue: "neon", name: "Neon Grid", sub: "Grelha vaporwave animada", price: 100, preview: <span className="pt-preview pt-preview-neon" />, apply: { profileTheme: "neon" } },
+  { id: "ptheme_galaxy", unlockField: "unlockedProfileThemes", unlockValue: "galaxy", name: "Galaxia", sub: "Estrelas e nebulosa", price: 100, preview: <span className="pt-preview pt-preview-galaxy" />, apply: { profileTheme: "galaxy" } },
+  { id: "ptheme_cyber", unlockField: "unlockedProfileThemes", unlockValue: "cyber", name: "Cyber HUD", sub: "Linhas neon em scan", price: 100, preview: <span className="pt-preview pt-preview-cyber" />, apply: { profileTheme: "cyber" } },
+  { id: "ptheme_sakura", unlockField: "unlockedProfileThemes", unlockValue: "sakura", name: "Sakura", sub: "Petalas a cair", price: 100, preview: <span className="pt-preview pt-preview-sakura" />, apply: { profileTheme: "sakura" } }
 ];
 
 const APP_THEMES = [
@@ -55,7 +55,8 @@ const APP_THEMES = [
   { id: "light", name: "Claro", preview: "preview-light" },
   { id: "vaporwave", name: "Vaporwave", preview: "preview-vaporwave" },
   { id: "cyberpunk", name: "Cyberpunk", preview: "preview-cyberpunk" },
-  { id: "space", name: "Space", preview: "preview-space" }
+  { id: "space", name: "Space", preview: "preview-space" },
+  { id: "steampunk", name: "Steampunk", preview: "preview-steampunk" }
 ];
 
 const NOTIF_PREF_DEFAULTS = { dm: true, globalChat: false, news: true, engagement: true };
@@ -680,6 +681,7 @@ function ThemePreview({ item }) {
       {item.id === "vaporwave" ? <><span className="pv-sun" /><span className="pv-grid" /></> : null}
       {item.id === "cyberpunk" ? <><span className="pv-scan" /><span className="pv-corner pv-tl" /><span className="pv-corner pv-br" /></> : null}
       {item.id === "space" ? <><span className="pv-planet" /><span className="pv-shoot" /></> : null}
+      {item.id === "steampunk" ? <><span className="pv-gear pv-gear-a" /><span className="pv-gear pv-gear-b" /><span className="pv-pipe" /></> : null}
     </span>
   );
 }

@@ -162,6 +162,12 @@ function registerAppServiceWorker() {
 function installTapRipple() {
   if (window.__alfaTapRippleInstalled) return;
   window.__alfaTapRippleInstalled = true;
+  const clearRipples = () => {
+    document.querySelectorAll(".tap-ripple").forEach((item) => item.remove());
+    document.querySelectorAll(".has-local-ripple").forEach((item) => {
+      if (!item.querySelector(":scope > .tap-ripple")) item.classList.remove("has-local-ripple");
+    });
+  };
   document.addEventListener("pointerdown", (event) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     const path = typeof event.composedPath === "function" ? event.composedPath() : [];
@@ -171,23 +177,22 @@ function installTapRipple() {
     const rect = target.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) return;
-    document.querySelectorAll(".tap-ripple").forEach((item) => {
-      if (item.parentElement !== target) item.remove();
-    });
-    target.querySelectorAll(":scope > .tap-ripple").forEach((item) => item.remove());
+    clearRipples();
     const ripple = document.createElement("span");
     ripple.className = "tap-ripple";
-    const size = Math.max(rect.width, rect.height) * 1.75;
+    const size = Math.max(rect.width, rect.height);
     ripple.style.width = `${size}px`;
     ripple.style.height = `${size}px`;
     ripple.style.left = `${event.clientX - rect.left}px`;
     ripple.style.top = `${event.clientY - rect.top}px`;
     target.classList.add("has-local-ripple");
     target.appendChild(ripple);
-    ripple.addEventListener("animationend", () => {
+    const cleanup = () => {
       ripple.remove();
       if (!target.querySelector(":scope > .tap-ripple")) target.classList.remove("has-local-ripple");
-    }, { once: true });
+    };
+    ripple.addEventListener("animationend", cleanup, { once: true });
+    window.setTimeout(cleanup, 620);
   }, { passive: true });
 }
 

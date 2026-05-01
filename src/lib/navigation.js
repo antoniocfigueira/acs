@@ -21,6 +21,9 @@ export function routeTo(page, search = "", hash = "") {
   const pagePath = page === "index.html" ? "" : page;
   window.history.pushState({}, "", `${basePath()}${pagePath}${search}${hash}`);
   window.dispatchEvent(new PopStateEvent("popstate"));
+  if (!hash) {
+    requestAnimationFrame(() => window.scrollTo(0, 0));
+  }
 }
 
 export function normalizeLocalHref(rawHref) {

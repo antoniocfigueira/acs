@@ -245,6 +245,10 @@ export function ProfilePage({ search }) {
     toast("Perfil atualizado!", "success");
   }, []);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [username]);
+
   usePullToRefresh(containerRef, {
     enabled: !!user && !!viewed.profile && !editOpen && !followList,
     onRefresh: refreshProfile

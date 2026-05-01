@@ -1050,10 +1050,10 @@ body.games-page [data-react-page="games.html"] {
   border-radius: 50%;
   pointer-events: none;
   transform: translate3d(-50%, -50%, 0) scale(.18);
-  background: radial-gradient(circle, rgba(168, 85, 247, .32) 0%, rgba(236, 72, 153, .18) 38%, transparent 68%);
+  background: radial-gradient(circle, rgba(168, 85, 247, .28) 0%, rgba(236, 72, 153, .16) 42%, transparent 72%);
   opacity: 0;
   will-change: transform, opacity;
-  animation: tapRippleGlow 520ms ease-out forwards;
+  animation: tapRippleGlow 500ms ease-out forwards;
 }
 
 .has-local-ripple {
@@ -1061,6 +1061,8 @@ body.games-page [data-react-page="games.html"] {
   overflow: hidden !important;
   isolation: isolate;
   contain: paint;
+  transform: translateZ(0);
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
 }
 
 .has-local-ripple > :not(.tap-ripple) {
@@ -1070,8 +1072,8 @@ body.games-page [data-react-page="games.html"] {
 
 @keyframes tapRippleGlow {
   0% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(.16); }
-  18% { opacity: .9; }
-  100% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(1); }
+  18% { opacity: .72; }
+  100% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(2.15); }
 }
 
 .profile-hero {
@@ -2165,4 +2167,150 @@ body.games-page .dark-ds .ds-start-btn:disabled {
     padding: 0 10px;
     font-size: 11px;
   }
+}
+
+.name-grad-anim {
+  --name-grad-base: #f8fafc;
+  background: linear-gradient(
+    90deg,
+    var(--name-grad-base),
+    color-mix(in srgb, var(--name-grad-base) 62%, white),
+    color-mix(in srgb, var(--name-grad-base) 72%, black),
+    color-mix(in srgb, var(--name-grad-base) 62%, white),
+    var(--name-grad-base)
+  ) !important;
+  background-size: 220% 100% !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: gradShift 9s ease-in-out infinite alternate;
+}
+
+@supports not (color: color-mix(in srgb, red, white)) {
+  .name-grad-anim {
+    background: linear-gradient(90deg, var(--name-grad-base), var(--name-grad-base)) !important;
+  }
+}
+
+.preview-steampunk {
+  background:
+    radial-gradient(circle at 24% 28%, rgba(214, 177, 95, .5), transparent 28%),
+    radial-gradient(circle at 76% 68%, rgba(45, 212, 191, .22), transparent 35%),
+    linear-gradient(135deg, #120c08, #2a1a0e 54%, #09201d);
+}
+
+.preview-steampunk::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: .42;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 13px, rgba(214,177,95,.12) 13px 14px),
+    repeating-linear-gradient(0deg, transparent 0 13px, rgba(214,177,95,.08) 13px 14px);
+}
+
+.preview-steampunk .pv-gear {
+  position: absolute;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, transparent 0 34%, #1a1009 35% 45%, transparent 46%),
+    repeating-conic-gradient(from 8deg, #d6b15f 0 10deg, transparent 10deg 22deg);
+  border: 2px solid rgba(214,177,95,.75);
+  box-shadow: 0 0 10px rgba(214,177,95,.28);
+  animation: steamGear 7s linear infinite;
+}
+
+.preview-steampunk .pv-gear-a {
+  width: 34px;
+  height: 34px;
+  left: 11px;
+  top: 10px;
+}
+
+.preview-steampunk .pv-gear-b {
+  width: 24px;
+  height: 24px;
+  right: 12px;
+  bottom: 12px;
+  animation-direction: reverse;
+}
+
+.preview-steampunk .pv-pipe {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 48%;
+  height: 5px;
+  background: linear-gradient(90deg, transparent, #8a5a2b 18%, #d6b15f 50%, #2dd4bf 82%, transparent);
+  box-shadow: 0 0 10px rgba(45,212,191,.22);
+}
+
+@keyframes steamGear {
+  to { transform: rotate(360deg); }
+}
+
+html[data-theme="steampunk"] {
+  --bg: #120d09;
+  --bg-1: #1d140d;
+  --bg-2: #2a1c10;
+  --bg-3: #3a2816;
+  --surface: rgba(28, 19, 12, .78);
+  --border: rgba(181, 130, 58, .28);
+  --border-2: rgba(214, 177, 95, .52);
+  --text: #f4e8d0;
+  --muted: #c5ad83;
+  --muted-2: #8d765a;
+  --grad: linear-gradient(135deg, #b7792f 0%, #d6b15f 45%, #2dd4bf 100%);
+  --shadow: 0 24px 60px -20px rgba(0,0,0,.78);
+}
+
+html[data-theme="steampunk"] body::before {
+  background:
+    radial-gradient(circle at 18% 22%, rgba(214,177,95,.16), transparent 32%),
+    radial-gradient(circle at 86% 12%, rgba(45,212,191,.12), transparent 28%),
+    radial-gradient(circle at 74% 82%, rgba(183,121,47,.16), transparent 30%),
+    linear-gradient(180deg, #140d08 0%, #080706 100%);
+}
+
+html[data-theme="steampunk"] body::after {
+  background:
+    repeating-linear-gradient(90deg, transparent 0 42px, rgba(214,177,95,.045) 42px 43px),
+    repeating-linear-gradient(0deg, transparent 0 42px, rgba(45,212,191,.035) 42px 43px),
+    radial-gradient(circle at 12% 18%, rgba(214,177,95,.08) 0 2px, transparent 3px);
+  background-size: auto, auto, 44px 44px;
+  opacity: .9;
+}
+
+html[data-theme="steampunk"] .app-header,
+html[data-theme="steampunk"] .bottom-nav,
+html[data-theme="steampunk"] .drawer {
+  background: rgba(24, 15, 9, .86);
+  border-color: rgba(214, 177, 95, .22);
+  box-shadow: 0 14px 38px rgba(0,0,0,.32);
+}
+
+html[data-theme="steampunk"] .card,
+html[data-theme="steampunk"] .composer,
+html[data-theme="steampunk"] .settings-action,
+html[data-theme="steampunk"] .input,
+html[data-theme="steampunk"] .comment-body,
+html[data-theme="steampunk"] .drawer-item {
+  background: rgba(29, 20, 13, .76);
+  border-color: rgba(181, 130, 58, .3);
+}
+
+html[data-theme="steampunk"] .grad-text,
+html[data-theme="steampunk"] .app-header .news-title-gradient {
+  background: linear-gradient(90deg, #f5d58a, #d08a3a 45%, #5eead4 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+html[data-theme="steampunk"] .btn-primary,
+html[data-theme="steampunk"] .post-action.liked,
+html[data-theme="steampunk"] .bottom-nav a.active,
+html[data-theme="steampunk"] .role-chip-mini {
+  background: var(--grad);
 }
