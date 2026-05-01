@@ -1,5 +1,10 @@
 @import "./legacy-style.css";
 
+:root {
+  --ripple-a: rgba(236, 72, 153, .35);
+  --ripple-b: rgba(139, 92, 246, 0);
+}
+
 html,
 body,
 #root {
@@ -30,7 +35,7 @@ body.chat-page {
 
 body.chat-page [data-react-page="chat.html"] {
   height: var(--alfa-viewport-height, 100dvh);
-  padding-bottom: calc(74px + env(safe-area-inset-bottom)) !important;
+  padding-bottom: 0 !important;
   box-sizing: border-box;
 }
 
@@ -204,6 +209,12 @@ body.chat-page .chat-input {
   left: 10px;
   bottom: 8px;
   z-index: 2;
+}
+
+.theme-option,
+.theme-option:active,
+.theme-option.active {
+  transform: none !important;
 }
 
 .archive-section-actions .icon-btn,
@@ -1046,34 +1057,25 @@ body.games-page [data-react-page="games.html"] {
 
 .tap-ripple {
   position: absolute;
-  z-index: 1;
   border-radius: 50%;
   pointer-events: none;
-  transform: translate3d(-50%, -50%, 0) scale(.18);
-  background: radial-gradient(circle, rgba(168, 85, 247, .28) 0%, rgba(236, 72, 153, .16) 42%, transparent 72%);
-  opacity: 0;
+  background: radial-gradient(circle, var(--ripple-a, rgba(236,72,153,.35)), var(--ripple-b, rgba(139,92,246,0)) 72%);
+  transform: scale(0);
   will-change: transform, opacity;
-  animation: tapRippleGlow 500ms ease-out forwards;
+  animation: tapRippleGlow .55s ease forwards;
 }
 
 .has-local-ripple {
   position: relative !important;
   overflow: hidden !important;
-  isolation: isolate;
-  contain: paint;
-  transform: translateZ(0);
-  -webkit-mask-image: -webkit-radial-gradient(white, black);
-}
-
-.has-local-ripple > :not(.tap-ripple) {
-  position: relative;
-  z-index: 2;
+  clip-path: inset(0 round inherit);
 }
 
 @keyframes tapRippleGlow {
-  0% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(.16); }
-  18% { opacity: .72; }
-  100% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(2.15); }
+  to {
+    transform: scale(2.4);
+    opacity: 0;
+  }
 }
 
 .profile-hero {
@@ -1734,6 +1736,15 @@ body.games-page .dark-ds .ds-start-btn:disabled {
   font-size: 12px;
 }
 
+.empty-artwork.empty-artwork-blank {
+  background: transparent !important;
+}
+
+.empty-artwork.empty-artwork-blank::before,
+.empty-artwork.empty-artwork-blank::after {
+  display: none !important;
+}
+
 .games-hub.is-opening-game .games-device {
   animation: gameOpenZoom 360ms cubic-bezier(.2,.9,.2,1) forwards;
 }
@@ -1899,11 +1910,18 @@ body.games-page .dark-ds .ds-start-btn:disabled {
 }
 
 .drawer-version {
-  color: var(--muted-2);
-  font-size: 11px;
+  color: var(--muted);
+  font-size: 12px;
   line-height: 1.5;
-  padding: 8px 18px 4px;
+  padding: 12px 18px 16px;
   text-align: left;
+  border-top: 1px solid var(--border);
+  background: inherit;
+}
+
+.drawer-version .grad-text {
+  font-weight: 800;
+  letter-spacing: .02em;
 }
 
 .drawer.open .drawer-nav .drawer-item {
@@ -2313,4 +2331,171 @@ html[data-theme="steampunk"] .post-action.liked,
 html[data-theme="steampunk"] .bottom-nav a.active,
 html[data-theme="steampunk"] .role-chip-mini {
   background: var(--grad);
+}
+
+html[data-theme="light"] {
+  --ripple-a: rgba(59, 130, 246, .26);
+  --ripple-b: rgba(236, 72, 153, 0);
+}
+
+html[data-theme="vaporwave"] {
+  --ripple-a: rgba(255, 0, 180, .34);
+  --ripple-b: rgba(0, 240, 255, 0);
+}
+
+html[data-theme="cyberpunk"] {
+  --ripple-a: rgba(34, 211, 238, .34);
+  --ripple-b: rgba(250, 204, 21, 0);
+}
+
+html[data-theme="space"] {
+  --ripple-a: rgba(125, 211, 252, .3);
+  --ripple-b: rgba(168, 85, 247, 0);
+}
+
+html[data-theme="steampunk"] {
+  --ripple-a: rgba(214, 177, 95, .34);
+  --ripple-b: rgba(45, 212, 191, 0);
+  --grad-soft: linear-gradient(135deg, rgba(214,177,95,.18), rgba(45,212,191,.1));
+  --grad-ring: conic-gradient(from 180deg, #d6b15f, #8a5a2b, #2dd4bf, #d6b15f);
+}
+
+body.chat-page .chat-footer {
+  margin-bottom: 0 !important;
+  border-bottom: 0 !important;
+}
+
+body.chat-page .bottom-nav {
+  margin-top: 0 !important;
+}
+
+.sub-panel-head {
+  background: rgba(12, 12, 14, .94);
+  border-bottom: 1px solid var(--border);
+}
+
+html[data-theme="light"] .sub-panel-head {
+  background: rgba(255,255,255,.92);
+}
+
+html[data-theme="vaporwave"] .sub-panel-head {
+  background: rgba(18, 7, 32, .9);
+  border-bottom-color: rgba(236,72,153,.28);
+}
+
+html[data-theme="cyberpunk"] .sub-panel-head {
+  background: rgba(2, 7, 18, .92);
+  border-bottom-color: rgba(34,211,238,.28);
+}
+
+html[data-theme="space"] .sub-panel-head {
+  background: rgba(2, 5, 22, .92);
+  border-bottom-color: rgba(125,211,252,.2);
+}
+
+html[data-theme="steampunk"] .sub-panel-head {
+  background:
+    linear-gradient(90deg, rgba(45,212,191,.06), transparent 34%, rgba(214,177,95,.08)),
+    rgba(22, 14, 8, .94);
+  border-bottom-color: rgba(214,177,95,.28);
+}
+
+html[data-theme="steampunk"] body::before {
+  background:
+    radial-gradient(circle at 16% 18%, rgba(214,177,95,.18), transparent 30%),
+    radial-gradient(circle at 85% 10%, rgba(45,212,191,.14), transparent 28%),
+    radial-gradient(circle at 70% 80%, rgba(183,121,47,.18), transparent 28%),
+    repeating-linear-gradient(90deg, transparent 0 74px, rgba(214,177,95,.035) 74px 76px),
+    #100b07;
+}
+
+html[data-theme="steampunk"] body::after {
+  background:
+    radial-gradient(circle at 12% 18%, transparent 0 28px, rgba(214,177,95,.12) 29px 31px, transparent 32px),
+    radial-gradient(circle at 88% 74%, transparent 0 38px, rgba(45,212,191,.1) 39px 41px, transparent 42px),
+    repeating-conic-gradient(from 0deg at 12% 18%, rgba(214,177,95,.08) 0 8deg, transparent 8deg 18deg),
+    linear-gradient(rgba(214,177,95,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(45,212,191,.028) 1px, transparent 1px);
+  background-size: auto, auto, auto, 36px 36px, 36px 36px;
+  opacity: .85;
+}
+
+html[data-theme="steampunk"] .bottom-nav {
+  background:
+    linear-gradient(180deg, rgba(61,38,18,.72), rgba(18,11,6,.92)),
+    rgba(18,11,6,.96);
+  border-top: 1px solid rgba(214,177,95,.25);
+  box-shadow: 0 -16px 38px rgba(0,0,0,.42), inset 0 1px rgba(214,177,95,.1);
+}
+
+html[data-theme="steampunk"] .bottom-nav a.active:not(.create) {
+  background: transparent !important;
+}
+
+html[data-theme="steampunk"] .bottom-nav a:not(.create)::before {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(214,177,95,.18), transparent 42%),
+    linear-gradient(135deg, rgba(138,90,43,.44), rgba(45,212,191,.13));
+  border-color: rgba(214,177,95,.24);
+}
+
+html[data-theme="steampunk"] .bottom-nav a.create {
+  background: #8a5a2b;
+  box-shadow: 0 10px 26px -8px rgba(214,177,95,.55);
+}
+
+html[data-theme="steampunk"] .bottom-nav a.create::before {
+  background: conic-gradient(from 0deg, #8a5a2b, #d6b15f, #2dd4bf, #8a5a2b);
+}
+
+html[data-theme="steampunk"] .card,
+html[data-theme="steampunk"] .composer,
+html[data-theme="steampunk"] .post,
+html[data-theme="steampunk"] .settings-row,
+html[data-theme="steampunk"] .shop-points-card,
+html[data-theme="steampunk"] .profile-edit-perks {
+  background:
+    linear-gradient(135deg, rgba(214,177,95,.055), rgba(45,212,191,.025)),
+    rgba(29,20,13,.78);
+  border-color: rgba(214,177,95,.24);
+}
+
+html[data-theme="steampunk"] .icon-btn,
+html[data-theme="steampunk"] .btn-ghost,
+html[data-theme="steampunk"] .settings-action,
+html[data-theme="steampunk"] .drawer-item .icon-wrap {
+  background: rgba(45, 31, 18, .72);
+  border-color: rgba(214,177,95,.24);
+}
+
+html[data-theme="steampunk"] .chat-footer,
+html[data-theme="steampunk"] .dm-footer {
+  background:
+    linear-gradient(90deg, rgba(45,212,191,.04), rgba(214,177,95,.08)),
+    rgba(18,11,6,.94);
+  border-color: rgba(214,177,95,.24);
+}
+
+html[data-theme="steampunk"] .chat-input,
+html[data-theme="steampunk"] .dm-input,
+html[data-theme="steampunk"] textarea,
+html[data-theme="steampunk"] input {
+  background: rgba(16, 11, 7, .82);
+  border-color: rgba(214,177,95,.3);
+}
+
+.sheet-modal-panel {
+  background: var(--surface, #121212) !important;
+  border-color: var(--border) !important;
+}
+
+html[data-theme="steampunk"] .sheet-modal-panel {
+  background:
+    linear-gradient(135deg, rgba(214,177,95,.06), rgba(45,212,191,.025)),
+    rgba(22,14,8,.98) !important;
+  border-color: rgba(214,177,95,.28) !important;
+}
+
+html[data-theme="steampunk"] .sheet-modal-panel > div:first-child {
+  background: rgba(214,177,95,.34) !important;
 }

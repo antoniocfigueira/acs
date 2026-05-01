@@ -162,29 +162,24 @@ function registerAppServiceWorker() {
 function installTapRipple() {
   if (window.__alfaTapRippleInstalled) return;
   window.__alfaTapRippleInstalled = true;
-  const clearRipples = () => {
-    document.querySelectorAll(".tap-ripple").forEach((item) => item.remove());
-    document.querySelectorAll(".has-local-ripple").forEach((item) => {
-      if (!item.querySelector(":scope > .tap-ripple")) item.classList.remove("has-local-ripple");
-    });
-  };
   document.addEventListener("pointerdown", (event) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     const path = typeof event.composedPath === "function" ? event.composedPath() : [];
     const source = path.find((item) => item instanceof Element) || event.target;
-    const target = source?.closest?.(".tap, button, a, [role='button']");
-    if (!target || target.disabled || target.closest(".app-splash, .bottom-nav")) return;
+    const target = source?.closest?.("[data-ripple], .tap, .action-btn, .feed-filter-btn, .theme-option, .drawer-item, .settings-action, .icon-btn");
+    if (!target || target.disabled || target.closest(".app-splash")) return;
     const rect = target.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) return;
-    clearRipples();
+
+    target.querySelectorAll(":scope > .tap-ripple").forEach((item) => item.remove());
     const ripple = document.createElement("span");
     ripple.className = "tap-ripple";
-    const size = Math.max(rect.width, rect.height);
+    const size = Math.min(Math.max(rect.width, rect.height), 180);
     ripple.style.width = `${size}px`;
     ripple.style.height = `${size}px`;
-    ripple.style.left = `${event.clientX - rect.left}px`;
-    ripple.style.top = `${event.clientY - rect.top}px`;
+    ripple.style.left = `${event.clientX - rect.left - size / 2}px`;
+    ripple.style.top = `${event.clientY - rect.top - size / 2}px`;
     target.classList.add("has-local-ripple");
     target.appendChild(ripple);
     const cleanup = () => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   addDoc,
   collection,
@@ -244,10 +244,8 @@ function Thread({ chatId, otherUid, user, profile, onOtherLoaded }) {
     );
   }, [chatId]);
 
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      if (wrapRef.current) wrapRef.current.scrollTop = wrapRef.current.scrollHeight + 9999;
-    });
+  useLayoutEffect(() => {
+    if (wrapRef.current) wrapRef.current.scrollTop = wrapRef.current.scrollHeight + 9999;
   }, [messages.length]);
 
   const send = async () => {

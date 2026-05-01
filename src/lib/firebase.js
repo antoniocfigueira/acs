@@ -73,6 +73,21 @@ export function canShowNotifs() {
   return "Notification" in window && Notification.permission === "granted";
 }
 
+export function playNotificationSound({ force = false } = {}) {
+  try {
+    if (!force && localStorage.getItem("acs_notification_sound_v1") === "0") return false;
+    const base = import.meta.env.BASE_URL || "/";
+    const audio = new Audio(`${base}sounds/notification.mp3`);
+    audio.preload = "auto";
+    audio.volume = 0.8;
+    const result = audio.play();
+    if (result?.catch) result.catch(() => {});
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function showLocalNotification({ title, body, icon, tag, data, forceVisible = false, source = "fcm", category = null }) {
   try {
     if (!canShowNotifs()) return null;
@@ -91,6 +106,7 @@ export function showLocalNotification({ title, body, icon, tag, data, forceVisib
 
     const isActive = document.visibilityState === "visible" && document.hasFocus();
     if (!forceVisible && isActive) return null;
+    playNotificationSound();
 
     const options = {
       body: body || "",

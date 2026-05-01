@@ -92,10 +92,10 @@ export function useKeyboardViewport({ enabled = true, scrollRef } = {}) {
 
     const focusOut = () => {
       if (resetId) clearTimeout(resetId);
-      setTimeout(apply, 60);
-      setTimeout(apply, 260);
-      setTimeout(forceReset, 520);
-      resetId = setTimeout(forceReset, 980);
+      requestAnimationFrame(forceReset);
+      setTimeout(forceReset, 90);
+      setTimeout(apply, 180);
+      resetId = setTimeout(forceReset, 320);
       poll();
     };
 

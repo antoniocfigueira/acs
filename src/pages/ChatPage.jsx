@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { collection, addDoc, deleteDoc, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp as fsServerTimestamp, setDoc } from "firebase/firestore";
 import { limitToLast, onChildAdded, onChildChanged, onChildRemoved, onDisconnect, onValue, push, query as rtQuery, ref, remove, set, update } from "firebase/database";
 import { Edit3, Gamepad2, Smile, Trash2, Upload } from "lucide-react";
@@ -760,19 +760,23 @@ export function ChatPage() {
     node.scrollTop = node.scrollHeight + 9999;
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const node = wrapRef.current;
-    if (!node) return undefined;
+    if (!node) return;
     const nearBottom = node.scrollHeight - node.scrollTop - node.clientHeight < 220;
-    if (!nearBottom && didInitialScroll.current) return undefined;
-    const timers = [0, 60, 180, 420].map((delay) => window.setTimeout(scrollToLatest, delay));
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
+    if (!nearBottom && didInitialScroll.current) return;
+    scrollToLatest();
   }, [messages.length]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (loading || didInitialScroll.current || !messages.length) return;
     didInitialScroll.current = true;
-    const timers = [0, 80, 240, 600].map((delay) => window.setTimeout(scrollToLatest, delay));
+    scrollToLatest();
+  }, [loading, messages.length]);
+
+  useEffect(() => {
+    if (loading || !messages.length) return undefined;
+    const timers = [80, 240].map((delay) => window.setTimeout(scrollToLatest, delay));
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [loading, messages.length]);
 

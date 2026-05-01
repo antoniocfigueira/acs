@@ -24,7 +24,7 @@ import { NotificationsButton, NotificationsModal } from "../components/Notificat
 import { PostCard } from "../components/PostCard.jsx";
 import { usePullToRefresh } from "../hooks/usePullToRefresh.js";
 import { logout, updateMyProfile, useAuthProfile } from "../lib/auth.js";
-import { db, initPush } from "../lib/firebase.js";
+import { db, initPush, playNotificationSound } from "../lib/firebase.js";
 import { routeTo } from "../lib/navigation.js";
 import { uploadMedia } from "../lib/upload.js";
 import { Avatar, Empty, Loading, RoleBadges, StyledName, toast } from "../lib/ui.jsx";
@@ -780,6 +780,13 @@ function SettingsPanel({ user, profile, onClose, onBack, onAdmin }) {
             </label>
           ))}
           </div>
+          <button className="settings-action tap" type="button" onClick={() => playNotificationSound({ force: true })}>
+            <DrawerIcon><Bell size={18} /></DrawerIcon>
+            <span className="settings-row-text">
+              <span className="settings-row-label">Testar som</span>
+              <span className="settings-row-hint">Usa public/sounds/notification.mp3</span>
+            </span>
+          </button>
         </div>
 
         {profile?.isAdmin ? (
@@ -886,8 +893,9 @@ function FeedMenu({ onClose, onSearch, onRanking, onShop, onBugs, onArchive, onS
 
         <div style={{ flex: 1 }} />
         <div className="drawer-version">
-          <div>Beta 1.1</div>
-          {profile?.isAdmin ? <div>admin access</div> : profile?.role === "mod" || profile?.isMod ? <div>moderator access</div> : null}
+          <span>versao beta 1.1</span>
+          {profile?.isAdmin ? <><span> · </span><span className="grad-text">Admin Access</span></> : null}
+          {!profile?.isAdmin && (profile?.role === "mod" || profile?.isMod) ? <><span> · </span><span className="grad-text">Moderator Access</span></> : null}
         </div>
         <div className="drawer-section" style={{ borderTop: "1px solid var(--border)", padding: "12px 18px" }}>
           <button className="drawer-item w-full" type="button" style={{ color: "#fca5a5" }} onClick={async () => { if (confirm("Sair da conta?")) await logout(); }}>

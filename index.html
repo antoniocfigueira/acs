@@ -16,6 +16,16 @@
         background: #050509;
       }
 
+      html:not(.app-ready),
+      html:not(.app-ready) body {
+        background: #050509 !important;
+      }
+
+      html:not(.app-ready) body::before,
+      html:not(.app-ready) body::after {
+        display: none !important;
+      }
+
       body {
         margin: 0;
         min-height: 100dvh;
@@ -43,6 +53,14 @@
         background: #050509;
         color: #fff;
         transition: opacity 380ms ease, transform 380ms ease, visibility 380ms ease;
+      }
+
+      .app-splash::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background: #050509;
       }
 
       .app-splash__content {

@@ -237,16 +237,7 @@ function AlfaJumpArtwork({ best }) {
 
 function EmptyArtwork({ index }) {
   return (
-    <div className="empty-artwork">
-      <div className="empty-art-grid" aria-hidden="true">
-        {Array.from({ length: 18 }).map((_, item) => <span key={item} />)}
-      </div>
-      <div className="empty-art-center">
-        <EmptyGameIcon />
-        <strong>Slot {index}</strong>
-        <span>Jogo em breve</span>
-      </div>
-    </div>
+    <div className="empty-artwork empty-artwork-blank" aria-label={`Slot ${index} vazio`} />
   );
 }
 
