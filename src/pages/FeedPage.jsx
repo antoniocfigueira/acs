@@ -15,6 +15,7 @@ import {
   query,
   runTransaction,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where
 } from "firebase/firestore";
@@ -181,10 +182,13 @@ function Composer({ user, profile }) {
   const [notifyAll, setNotifyAll] = useState(false);
   const fileRef = useRef(null);
   const applyPoll = (poll) => {
-    const scrollY = window.scrollY;
     setMedia({ type: "poll", poll });
     setPollOpen(false);
-    requestAnimationFrame(() => window.scrollTo({ top: scrollY, left: 0, behavior: "auto" }));
+    const keepTop = () => window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    keepTop();
+    requestAnimationFrame(keepTop);
+    window.setTimeout(keepTop, 80);
+    window.setTimeout(keepTop, 220);
   };
 
   const pickFile = async (file) => {
@@ -947,8 +951,25 @@ function DrawerIcon({ children, className = "" }) {
 
 function FeedMenu({ onClose, onSearch, onRanking, onShop, onBugs, onArchive, onSettings, onAdmin, user, profile }) {
   const dmUnread = useDmUnread(user);
+  const [versionText, setVersionText] = useState("versao beta 1.1");
+  useEffect(() => {
+    return onSnapshot(doc(db, "appConfig", "ui"), (snap) => {
+      const value = snap.data()?.drawerVersionText;
+      setVersionText(typeof value === "string" && value.trim() ? value.trim().slice(0, 60) : "versao beta 1.1");
+    }, () => setVersionText("versao beta 1.1"));
+  }, []);
   const open = (fn) => {
     fn();
+  };
+  const editVersionText = async () => {
+    const next = window.prompt("Texto da versão no menu", versionText);
+    if (next === null) return;
+    const clean = next.trim().slice(0, 60) || "versao beta 1.1";
+    try {
+      await setDoc(doc(db, "appConfig", "ui"), { drawerVersionText: clean }, { merge: true });
+    } catch (err) {
+      toast(`Erro: ${err.message}`, "error");
+    }
   };
   return (
     <SideDrawer onClose={onClose}>
@@ -1021,7 +1042,12 @@ function FeedMenu({ onClose, onSearch, onRanking, onShop, onBugs, onArchive, onS
 
         <div style={{ flex: 1 }} />
         <div className="drawer-version">
-          <span>versao beta 1.1</span>
+          <span>{versionText}</span>
+          {profile?.isAdmin ? (
+            <button className="drawer-version-edit" type="button" aria-label="Editar texto da versão" onClick={editVersionText}>
+              <Edit3 size={12} />
+            </button>
+          ) : null}
           {profile?.isAdmin ? <><span> · </span><span className="grad-text">Admin Access</span></> : null}
           {!profile?.isAdmin && (profile?.role === "mod" || profile?.isMod) ? <><span> · </span><span className="grad-text">Moderator Access</span></> : null}
         </div>

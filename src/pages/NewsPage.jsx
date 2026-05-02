@@ -15,7 +15,7 @@ import { Edit3, Plus, Trash2 } from "lucide-react";
 import { AppHeader, BottomNav, GradientDefs, PageFrame } from "../components/Shell.jsx";
 import { SheetModal } from "../components/Modal.jsx";
 import { useAuthProfile } from "../lib/auth.js";
-import { db, playNotificationSound } from "../lib/firebase.js";
+import { db } from "../lib/firebase.js";
 import { uploadMedia } from "../lib/upload.js";
 import { Avatar, Empty, Loading, RoleBadges, StyledName, toast } from "../lib/ui.jsx";
 
@@ -174,10 +174,19 @@ export function NewsPage() {
   const [composer, setComposer] = useState(null);
   const [logoPop, setLogoPop] = useState(false);
   const isAdmin = !!profile?.isAdmin;
+  const playHeaderSound = () => {
+    try {
+      const audio = new Audio(`${import.meta.env.BASE_URL || "/"}sounds/notification.mp3`);
+      audio.volume = 0.85;
+      audio.currentTime = 0;
+      audio.play()?.catch?.(() => {});
+    } catch {}
+  };
   const popLogo = () => {
     setLogoPop(false);
-    playNotificationSound({ force: true });
-    requestAnimationFrame(() => setLogoPop(true));
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setLogoPop(true));
+    });
     window.setTimeout(() => setLogoPop(false), 720);
   };
 
@@ -185,7 +194,7 @@ export function NewsPage() {
     <PageFrame page="news.html">
       <GradientDefs />
       <AppHeader right={isAdmin ? <button className="icon-btn tap" type="button" aria-label="Nova noticia" onClick={() => setComposer({})}><Plus size={22} /></button> : null}>
-        <button className={`logo grad-text news-title-gradient header-logo-button ${logoPop ? "logo-pop" : ""}`} type="button" onClick={popLogo} style={{ fontSize: 18 }}>Alfa News</button>
+        <button className={`logo grad-text news-title-gradient header-logo-button ${logoPop ? "logo-pop" : ""}`} type="button" onPointerDown={playHeaderSound} onClick={popLogo} style={{ fontSize: 18 }}>Alfa News</button>
       </AppHeader>
       <div className="container">
         {authLoading ? <Loading /> : null}
