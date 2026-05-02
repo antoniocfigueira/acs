@@ -18,17 +18,17 @@ import {
   updateDoc,
   where
 } from "firebase/firestore";
-import { Archive, Bell, Bug, Camera, ChevronLeft, Edit3, Image as ImageIcon, LogOut, Mail, Menu, Newspaper, Search, Settings, Shield, SlidersHorizontal, Star, Store, Trash2, X } from "lucide-react";
+import { Archive, Bell, Bug, Camera, ChevronLeft, Edit3, Image as ImageIcon, LogOut, Mail, Menu, Newspaper, Search, Settings, Shield, SlidersHorizontal, Star, Store, Trash2, Trophy, X } from "lucide-react";
 import { BottomNav, GradientDefs, LegacySettingsIcon, PageFrame } from "../components/Shell.jsx";
 import { SheetModal, SideDrawer } from "../components/Modal.jsx";
 import { NotificationsButton, NotificationsModal } from "../components/Notifications.jsx";
 import { PostCard } from "../components/PostCard.jsx";
 import { usePullToRefresh } from "../hooks/usePullToRefresh.js";
 import { logout, updateMyProfile, useAuthProfile } from "../lib/auth.js";
-import { db, initPush, playNotificationSound } from "../lib/firebase.js";
+import { db, initPush } from "../lib/firebase.js";
 import { routeTo } from "../lib/navigation.js";
 import { uploadMedia } from "../lib/upload.js";
-import { Avatar, Empty, Loading, RoleBadges, StyledName, toast } from "../lib/ui.jsx";
+import { Avatar, debugToastsEnabled, Empty, Loading, RoleBadges, StyledName, toast } from "../lib/ui.jsx";
 
 const SHOP_ITEMS = [
   { id: "color_cyan", unlockField: "unlockedNameColors", unlockValue: "#22d3ee", name: "Cor Azul", sub: "Nome em azul", price: 50, preview: <span className="name-sample" style={{ color: "#22d3ee" }}>Nome</span>, apply: { nameColor: "#22d3ee" } },
@@ -180,6 +180,12 @@ function Composer({ user, profile }) {
   const [pollOpen, setPollOpen] = useState(false);
   const [notifyAll, setNotifyAll] = useState(false);
   const fileRef = useRef(null);
+  const applyPoll = (poll) => {
+    const scrollY = window.scrollY;
+    setMedia({ type: "poll", poll });
+    setPollOpen(false);
+    requestAnimationFrame(() => window.scrollTo({ top: scrollY, left: 0, behavior: "auto" }));
+  };
 
   const pickFile = async (file) => {
     if (!file) return;
@@ -242,11 +248,11 @@ function Composer({ user, profile }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="O que dizem os teus olhos?" maxLength="500" />
         {media ? (
-          <div className="media-preview" style={{ position: "relative" }}>
+          <div className={`media-preview ${media.type === "poll" ? "poll-media-preview" : ""}`} style={{ position: "relative" }}>
             {media.type === "image" ? <img src={media.url} alt="" style={{ width: "100%", display: "block" }} /> : null}
             {media.type === "video" ? <video src={media.url} controls style={{ width: "100%", display: "block" }} /> : null}
             {media.type === "poll" ? (
-              <div className="poll-preview">
+              <div className="poll-preview composer-poll-preview">
                 <SlidersHorizontal size={18} style={{ color: "#ec4899", flexShrink: 0 }} />
                 <div className="poll-preview-label">{media.poll.question}</div>
                 <div className="poll-preview-type">{media.poll.kind === "slider" ? "Slider 0-100" : `${media.poll.options?.length || 0} opções`}</div>
@@ -276,7 +282,7 @@ function Composer({ user, profile }) {
           </div>
         </div>
       </div>
-      {pollOpen ? <PollBuilderModal onClose={() => setPollOpen(false)} onCreate={(poll) => { setMedia({ type: "poll", poll }); setPollOpen(false); }} /> : null}
+      {pollOpen ? <PollBuilderModal onClose={() => setPollOpen(false)} onCreate={applyPoll} /> : null}
     </div>
   );
 }
@@ -465,6 +471,7 @@ function StoryViewer({ stories, user, onClose }) {
   const mediaURL = story.mediaURL || story.mediaUrl || story.media || story.imageUrl || story.imageURL || story.videoUrl || story.videoURL || story.url || "";
   const mediaType = story.mediaType || story.type || (/\.(mp4|webm|mov)(\?|$)/i.test(mediaURL) ? "video" : mediaURL ? "image" : "");
   const storyText = story.text || story.caption || story.body || "";
+  const author = { name: story.authorName, username: story.authorUsername, photoURL: story.authorPhoto };
   const deleteStory = async () => {
     if (!confirm("Apagar esta story?")) return;
     try {
@@ -483,8 +490,15 @@ function StoryViewer({ stories, user, onClose }) {
           </span>
         ))}
       </div>
+      <div className="story-viewer-author" onClick={(event) => event.stopPropagation()}>
+        <Avatar user={author} size={42} />
+        <div className="story-viewer-author-text">
+          <strong>{story.authorName || story.authorUsername || "Story"}</strong>
+          <span>agora</span>
+        </div>
+      </div>
       <div className="story-top-actions-react" onClick={(event) => event.stopPropagation()}>
-        {story.uid === user.uid ? <button className="story-viewer-delete tap" type="button" onClick={deleteStory}>Apagar</button> : null}
+        {story.uid === user?.uid ? <button className="story-viewer-delete tap" type="button" onClick={deleteStory}>Apagar</button> : null}
         <button className="icon-btn tap story-viewer-close" type="button" aria-label="Fechar" onClick={onClose}>
           <X size={22} />
         </button>
@@ -581,17 +595,24 @@ function RankingModal({ onClose }) {
   }, []);
   return (
     <SheetModal title="Ranking" onClose={onClose}>
-      {users.map((item, idx) => (
-        <button key={item.uid} className="rank-row" type="button" onClick={() => { onClose(); routeTo("profile.html", `?u=${encodeURIComponent(item.username || "")}`); }}>
-          <div className={`pos ${idx < 3 ? "top" : ""}`}>{idx + 1}</div>
-          <Avatar user={item} size={36} />
-          <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
-            <div style={{ fontWeight: 700 }}><StyledName user={item} /><RoleBadges user={item} /></div>
-            <div style={{ color: "var(--muted)", fontSize: 12 }}>@{item.username || ""}</div>
-          </div>
-          <div className="grad-text" style={{ fontWeight: 800 }}>{item.points || 0}</div>
-        </button>
-      ))}
+      <div className="ranking-modern">
+        <div className="ranking-hero">
+          <div className="ranking-trophy"><Trophy size={34} /></div>
+          <strong>Top Alfa Club</strong>
+          <span>Os users com mais pontos da loja</span>
+        </div>
+        {users.map((item, idx) => (
+          <button key={item.uid} className={`rank-row rank-row-modern ${idx < 3 ? "rank-podium" : ""}`} type="button" onClick={() => { onClose(); routeTo("profile.html", `?u=${encodeURIComponent(item.username || "")}`); }}>
+            <div className={`pos ${idx < 3 ? "top" : ""}`}>{idx + 1}</div>
+            <Avatar user={item} size={40} />
+            <div className="rank-user-meta">
+              <div className="rank-user-name"><StyledName user={item} /><RoleBadges user={item} /></div>
+              <div className="rank-user-handle">@{item.username || ""}</div>
+            </div>
+            <div className="rank-points grad-text">{item.points || 0}</div>
+          </button>
+        ))}
+      </div>
     </SheetModal>
   );
 }
@@ -796,6 +817,7 @@ function SettingsPanel({ user, profile, onClose, onBack, onAdmin }) {
     }
   });
   const [prefs, setPrefs] = useState(readNotifPrefs);
+  const [debug, setDebug] = useState(debugToastsEnabled);
 
   const chooseTheme = (nextTheme) => {
     setTheme(nextTheme);
@@ -828,11 +850,16 @@ function SettingsPanel({ user, profile, onClose, onBack, onAdmin }) {
     saveNotifPrefs(next, user);
   };
 
+  const toggleDebug = (value) => {
+    setDebug(value);
+    try { localStorage.setItem("acs_debug_toasts_v1", value ? "1" : "0"); } catch {}
+  };
+
   return (
     <SideDrawer onClose={onClose}>
       {({ close }) => <div className="sub-panel active">
         <div className="sub-panel-head">
-          <button className="icon-btn tap" type="button" aria-label="Voltar" onClick={onBack}>
+          <button className="icon-btn tap" type="button" aria-label="Voltar" onClick={() => (onBack ? onBack() : close())}>
             <ChevronLeft size={20} />
           </button>
           <div style={{ fontWeight: 700 }}>Definições</div>
@@ -875,13 +902,17 @@ function SettingsPanel({ user, profile, onClose, onBack, onAdmin }) {
             </label>
           ))}
           </div>
-          <button className="settings-action tap" type="button" onClick={() => playNotificationSound({ force: true })}>
-            <DrawerIcon><Bell size={18} /></DrawerIcon>
+        </div>
+
+        <div className="settings-section">
+          <div className="settings-title">Debug</div>
+          <label className="settings-row">
             <span className="settings-row-text">
-              <span className="settings-row-label">Testar som</span>
-              <span className="settings-row-hint">Usa public/sounds/notification.mp3</span>
+              <span className="settings-row-label">Debug</span>
+              <span className="settings-row-hint">Mostrar avisos informativos da app</span>
             </span>
-          </button>
+            <Toggle checked={debug} onChange={toggleDebug} />
+          </label>
         </div>
 
         {profile?.isAdmin ? (
@@ -1643,7 +1674,7 @@ export function FeedPage({ search = "" }) {
       {modal === "bugs" && user && profile ? <BugReportModal user={user} profile={profile} onClose={() => setModal(null)} /> : null}
       {modal === "notifications" && user ? <NotificationsModal user={user} onClose={() => setModal(null)} /> : null}
       {modal === "archive" && user && profile ? <ArchiveModal user={user} profile={profile} onClose={() => setModal(null)} onBack={() => setModal("menu")} /> : null}
-      {(modal === "settings" || modal === "settings-menu") && user && profile ? <SettingsPanel user={user} profile={profile} onClose={() => setModal(null)} onBack={() => setModal(modal === "settings-menu" ? "menu" : null)} onAdmin={() => setModal("admin")} /> : null}
+      {(modal === "settings" || modal === "settings-menu") && user && profile ? <SettingsPanel user={user} profile={profile} onClose={() => setModal(null)} onBack={modal === "settings-menu" ? () => setModal("menu") : undefined} onAdmin={() => setModal("admin")} /> : null}
       {modal === "admin" ? <AdminPanelModal onClose={() => setModal(null)} /> : null}
       {modal === "menu" ? <FeedMenu onClose={() => setModal(null)} onSearch={() => setModal("search")} onRanking={() => setModal("ranking")} onShop={() => setModal("shop")} onBugs={() => setModal("bugs")} onArchive={() => setModal("archive")} onSettings={() => setModal("settings-menu")} onAdmin={() => setModal("admin")} user={user} profile={profile} /> : null}
     </PageFrame>

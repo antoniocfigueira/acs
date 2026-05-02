@@ -159,31 +159,6 @@ function registerAppServiceWorker() {
   });
 }
 
-function installTapRipple() {
-  if (window.__alfaTapRippleInstalled) return;
-  window.__alfaTapRippleInstalled = true;
-  const markRippleTargets = () => {
-    document.querySelectorAll(".tap:not([data-ripple]), .btn-primary:not([data-ripple]), .btn-ghost:not([data-ripple]), .icon-btn:not([data-ripple]), .action-btn:not([data-ripple]), .feed-filter-btn:not([data-ripple]), .drawer-item:not([data-ripple])")
-      .forEach((item) => item.setAttribute("data-ripple", ""));
-  };
-  markRippleTargets();
-  const observer = new MutationObserver(markRippleTargets);
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-  document.addEventListener("click", (event) => {
-    const target = event.target.closest?.("[data-ripple]");
-    if (!target) return;
-    if (target.disabled || target.closest(".app-splash")) return;
-    const rect = target.getBoundingClientRect();
-    const ripple = document.createElement("span");
-    const size = Math.max(rect.width, rect.height);
-    ripple.style.cssText = `position:absolute;left:${event.clientX - rect.left - size / 2}px;top:${event.clientY - rect.top - size / 2}px;width:${size}px;height:${size}px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(236,72,153,.35),rgba(139,92,246,0));transform:scale(0);animation:ripple .55s ease forwards;`;
-    target.style.position = target.style.position || "relative";
-    target.style.overflow = "hidden";
-    target.appendChild(ripple);
-    window.setTimeout(() => ripple.remove(), 600);
-  });
-}
-
 function LegacyPage({ page, search }) {
   const legacy = legacyPages[page] || legacyPages["index.html"];
   const script = SCRIPT_BY_PAGE[page];

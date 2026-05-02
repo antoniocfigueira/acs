@@ -15,9 +15,15 @@ import { Edit3, Plus, Trash2 } from "lucide-react";
 import { AppHeader, BottomNav, GradientDefs, PageFrame } from "../components/Shell.jsx";
 import { SheetModal } from "../components/Modal.jsx";
 import { useAuthProfile } from "../lib/auth.js";
-import { db } from "../lib/firebase.js";
+import { db, playNotificationSound } from "../lib/firebase.js";
 import { uploadMedia } from "../lib/upload.js";
-import { Avatar, Empty, Loading, RoleBadges, StyledName, timeAgo, toast } from "../lib/ui.jsx";
+import { Avatar, Empty, Loading, RoleBadges, StyledName, toast } from "../lib/ui.jsx";
+
+function newsDate(date) {
+  const ts = date?.toMillis ? date.toMillis() : date?.seconds ? date.seconds * 1000 : +date;
+  if (!ts || Number.isNaN(ts)) return "";
+  return new Date(ts).toLocaleDateString("pt-PT", { day: "2-digit", month: "long", year: "numeric" });
+}
 
 function useNews() {
   const [state, setState] = useState({ loading: true, news: [], error: null });
@@ -142,7 +148,7 @@ function NewsCard({ item, user, profile, onEdit }) {
           <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text)", display: "flex", alignItems: "center" }}>
             <StyledName user={author} /><RoleBadges user={author} />
           </div>
-          <div style={{ fontSize: 11, color: "var(--muted-2)" }}>@{author.username} · {timeAgo(item.createdAt)}</div>
+          <div style={{ fontSize: 11, color: "var(--muted-2)" }}>@{author.username} · {newsDate(item.createdAt)}</div>
         </div>
       </div>
       <div className="news-title" style={{ marginTop: 10 }}>{item.title || ""}</div>
@@ -166,13 +172,20 @@ export function NewsPage() {
   const { loading: authLoading, user, profile, error: authError } = useAuthProfile({ requireUser: true });
   const news = useNews();
   const [composer, setComposer] = useState(null);
+  const [logoPop, setLogoPop] = useState(false);
   const isAdmin = !!profile?.isAdmin;
+  const popLogo = () => {
+    setLogoPop(false);
+    playNotificationSound({ force: true });
+    requestAnimationFrame(() => setLogoPop(true));
+    window.setTimeout(() => setLogoPop(false), 720);
+  };
 
   return (
     <PageFrame page="news.html">
       <GradientDefs />
       <AppHeader right={isAdmin ? <button className="icon-btn tap" type="button" aria-label="Nova noticia" onClick={() => setComposer({})}><Plus size={22} /></button> : null}>
-        <div className="logo grad-text news-title-gradient" style={{ fontSize: 18 }}>Alfa News</div>
+        <button className={`logo grad-text news-title-gradient header-logo-button ${logoPop ? "logo-pop" : ""}`} type="button" onClick={popLogo} style={{ fontSize: 18 }}>Alfa News</button>
       </AppHeader>
       <div className="container">
         {authLoading ? <Loading /> : null}

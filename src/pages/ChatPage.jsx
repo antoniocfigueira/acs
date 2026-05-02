@@ -108,7 +108,7 @@ const GAME_TYPES = {
     name: "4 em Linha",
     sub: "Grelha 7x6",
     icon: "4",
-    initialState: () => ({ board: Array.from({ length: 6 }, () => Array(7).fill(0)), winCells: null })
+    initialState: () => ({ board: Array(42).fill(0), winCells: null })
   }
 };
 
@@ -161,7 +161,12 @@ function rpsLabel(choice) {
   return { rock: "Pedra", paper: "Papel", scissors: "Tesoura" }[choice] || "?";
 }
 
+function rpsSymbol(choice) {
+  return { rock: "🪨", paper: "📄", scissors: "✂" }[choice] || "?";
+}
+
 function connect4Result(board) {
+  const grid = normalizeConnect4Board(board);
   const directions = [
     [0, 1],
     [1, 0],
@@ -170,22 +175,32 @@ function connect4Result(board) {
   ];
   for (let r = 0; r < 6; r += 1) {
     for (let c = 0; c < 7; c += 1) {
-      const value = board[r]?.[c];
+      const value = grid[r]?.[c];
       if (!value) continue;
       for (const [dr, dc] of directions) {
         const cells = [[r, c]];
         for (let step = 1; step < 4; step += 1) {
           const nr = r + dr * step;
           const nc = c + dc * step;
-          if (nr < 0 || nr >= 6 || nc < 0 || nc >= 7 || board[nr]?.[nc] !== value) break;
+          if (nr < 0 || nr >= 6 || nc < 0 || nc >= 7 || grid[nr]?.[nc] !== value) break;
           cells.push([nr, nc]);
         }
         if (cells.length === 4) return { winner: value === 1 ? "p1" : "p2", cells };
       }
     }
   }
-  if (board.every((row) => row.every(Boolean))) return { winner: "draw", cells: null };
+  if (grid.every((row) => row.every(Boolean))) return { winner: "draw", cells: null };
   return { winner: null, cells: null };
+}
+
+function normalizeConnect4Board(board) {
+  const flat = Array.isArray(board?.[0]) ? board.flat() : Array.isArray(board) ? board : [];
+  const padded = [...flat.slice(0, 42), ...Array(Math.max(0, 42 - flat.length)).fill(0)];
+  return Array.from({ length: 6 }, (_, row) => padded.slice(row * 7, row * 7 + 7));
+}
+
+function flattenConnect4Board(board) {
+  return normalizeConnect4Board(board).flat();
 }
 
 function GamePicker({ user, profile, onlineUsers, onClose }) {
@@ -439,9 +454,9 @@ function RpsGame({ game, user }) {
       <div className="rps-header">Ronda {state.round || 1} - {state.wins?.p1 || 0} - {state.wins?.p2 || 0}</div>
       {canPick ? (
         <div className="rps-pick-row">
-          <button className="rps-pick" type="button" title="Pedra" onClick={() => pick("rock")}>R</button>
-          <button className="rps-pick" type="button" title="Papel" onClick={() => pick("paper")}>P</button>
-          <button className="rps-pick" type="button" title="Tesoura" onClick={() => pick("scissors")}>T</button>
+          <button className="rps-pick" type="button" title="Pedra" aria-label="Pedra" onClick={() => pick("rock")}>{rpsSymbol("rock")}</button>
+          <button className="rps-pick" type="button" title="Papel" aria-label="Papel" onClick={() => pick("paper")}>{rpsSymbol("paper")}</button>
+          <button className="rps-pick" type="button" title="Tesoura" aria-label="Tesoura" onClick={() => pick("scissors")}>{rpsSymbol("scissors")}</button>
         </div>
       ) : (
         <div className="rps-locked">{slot ? (myMove ? `Escolheste ${rpsLabel(myMove)}` : "Espera pela tua vez") : "Modo espectador"}</div>
@@ -449,7 +464,7 @@ function RpsGame({ game, user }) {
       <div className="rps-status-line">
         {moves.p1 ? "P1 pronto" : "P1 a escolher"} - {moves.p2 ? "P2 pronto" : "P2 a escolher"}
       </div>
-      {last ? <div className="rps-lastround">Ultima: {rpsLabel(last.p1)} vs {rpsLabel(last.p2)}</div> : null}
+      {last ? <div className="rps-lastround">Ultima: {rpsSymbol(last.p1)} {rpsLabel(last.p1)} vs {rpsSymbol(last.p2)} {rpsLabel(last.p2)}</div> : null}
     </div>
   );
 }
@@ -458,7 +473,7 @@ function Connect4Game({ game, user }) {
   const slot = playerSlot(game, user.uid);
   const myTurn = slot && game.turn === slot && game.status === "active";
   const myValue = slot === "p1" ? 1 : 2;
-  const board = Array.isArray(game.state?.board) ? game.state.board : Array.from({ length: 6 }, () => Array(7).fill(0));
+  const board = normalizeConnect4Board(game.state?.board);
   const winCells = game.state?.winCells || [];
   const isWinCell = (r, c) => winCells?.some?.(([wr, wc]) => wr === r && wc === c);
 
@@ -473,7 +488,7 @@ function Connect4Game({ game, user }) {
         const freshSlot = playerSlot(fresh, user.uid);
         if (!freshSlot || fresh.turn !== freshSlot || fresh.status !== "active") return;
         const value = freshSlot === "p1" ? 1 : 2;
-        const nextBoard = (fresh.state?.board || Array.from({ length: 6 }, () => Array(7).fill(0))).map((row) => [...row]);
+        const nextBoard = normalizeConnect4Board(fresh.state?.board).map((row) => [...row]);
         let row = -1;
         for (let r = 5; r >= 0; r -= 1) {
           if (!nextBoard[r][col]) {
@@ -485,7 +500,7 @@ function Connect4Game({ game, user }) {
         nextBoard[row][col] = value;
         const result = connect4Result(nextBoard);
         tx.update(gameRef, {
-          state: { ...(fresh.state || {}), board: nextBoard, winCells: result.cells },
+          state: { ...(fresh.state || {}), board: flattenConnect4Board(nextBoard), winCells: result.cells },
           turn: freshSlot === "p1" ? "p2" : "p1",
           status: result.winner ? "done" : "active",
           winner: result.winner,

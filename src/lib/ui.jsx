@@ -1,6 +1,15 @@
 import React from "react";
 
+export function debugToastsEnabled() {
+  try {
+    return localStorage.getItem("acs_debug_toasts_v1") === "1";
+  } catch {
+    return false;
+  }
+}
+
 export function toast(message, type = "") {
+  if (type !== "error" && !debugToastsEnabled()) return;
   let el = document.getElementById("_toast");
   if (!el) {
     el = document.createElement("div");
