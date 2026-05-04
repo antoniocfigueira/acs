@@ -15,6 +15,7 @@ import { Edit3, Plus, Trash2 } from "lucide-react";
 import { AppHeader, BottomNav, GradientDefs, PageFrame } from "../components/Shell.jsx";
 import { SheetModal } from "../components/Modal.jsx";
 import { useAuthProfile } from "../lib/auth.js";
+import { useAdminMode } from "../lib/adminMode.js";
 import { db } from "../lib/firebase.js";
 import { uploadMedia } from "../lib/upload.js";
 import { Avatar, Empty, Loading, RoleBadges, StyledName, toast } from "../lib/ui.jsx";
@@ -121,6 +122,7 @@ function NewsComposer({ profile, user, initial, onClose }) {
 }
 
 function NewsCard({ item, user, profile, onEdit }) {
+  const adminMode = useAdminMode(profile);
   const author = {
     name: item.authorName || "Alfa",
     username: item.authorUsername || "alfa",
@@ -128,8 +130,8 @@ function NewsCard({ item, user, profile, onEdit }) {
     isAdmin: !!item.authorIsAdmin,
     role: item.authorRole
   };
-  const canEdit = !!profile?.isAdmin;
-  const canDelete = !!profile?.isAdmin || (item.uid === user?.uid && profile?.role === "mod");
+  const canEdit = !!adminMode.adminView;
+  const canDelete = !!adminMode.adminView || (item.uid === user?.uid && profile?.role === "mod");
   const deleteNews = async () => {
     if (!confirm("Apagar esta noticia?")) return;
     try {
@@ -172,29 +174,14 @@ export function NewsPage() {
   const { loading: authLoading, user, profile, error: authError } = useAuthProfile({ requireUser: true });
   const news = useNews();
   const [composer, setComposer] = useState(null);
-  const [logoPop, setLogoPop] = useState(false);
-  const isAdmin = !!profile?.isAdmin;
-  const playHeaderSound = () => {
-    try {
-      const audio = new Audio(`${import.meta.env.BASE_URL || "/"}sounds/notification.mp3`);
-      audio.volume = 0.85;
-      audio.currentTime = 0;
-      audio.play()?.catch?.(() => {});
-    } catch {}
-  };
-  const popLogo = () => {
-    setLogoPop(false);
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => setLogoPop(true));
-    });
-    window.setTimeout(() => setLogoPop(false), 720);
-  };
+  const adminMode = useAdminMode(profile);
+  const isAdmin = !!adminMode.adminView;
 
   return (
     <PageFrame page="news.html">
       <GradientDefs />
       <AppHeader right={isAdmin ? <button className="icon-btn tap" type="button" aria-label="Nova noticia" onClick={() => setComposer({})}><Plus size={22} /></button> : null}>
-        <button className={`logo grad-text news-title-gradient header-logo-button ${logoPop ? "logo-pop" : ""}`} type="button" onPointerDown={playHeaderSound} onClick={popLogo} style={{ fontSize: 18 }}>Alfa News</button>
+        <div className="logo grad-text news-title-gradient" style={{ fontSize: 18 }}>Alfa News</div>
       </AppHeader>
       <div className="container">
         {authLoading ? <Loading /> : null}

@@ -6,6 +6,7 @@ import { AppHeader, BottomNav, GradientDefs, HeaderUsersButton, PageFrame, SendI
 import { SheetModal } from "../components/Modal.jsx";
 import { useKeyboardViewport } from "../hooks/useKeyboardViewport.js";
 import { useAuthProfile } from "../lib/auth.js";
+import { useAdminMode } from "../lib/adminMode.js";
 import { db, rtdb } from "../lib/firebase.js";
 import { routeTo } from "../lib/navigation.js";
 import { uploadMedia } from "../lib/upload.js";
@@ -531,9 +532,10 @@ function Connect4Game({ game, user }) {
 
 function ChatMessage({ message, previous, user, profile }) {
   const [editing, setEditing] = useState(false);
+  const adminMode = useAdminMode(profile);
   const mine = message.uid === user.uid;
-  const canDelete = mine || profile?.isAdmin || profile?.role === "mod";
-  const canEdit = (mine || profile?.isAdmin) && (!message.type || message.type === "text");
+  const canDelete = mine || adminMode.adminView || profile?.role === "mod";
+  const canEdit = (mine || adminMode.adminView) && (!message.type || message.type === "text");
   const timeStr = new Date(message.at || Date.now()).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
   const showDay = !previous || new Date(previous.at || 0).toDateString() !== new Date(message.at || Date.now()).toDateString();
 
@@ -653,6 +655,7 @@ function StickerPicker({ user, profile, onClose, onSend, onSendMedia }) {
   const [uploadPct, setUploadPct] = useState(null);
   const stickerInputRef = useRef(null);
   const mediaInputRef = useRef(null);
+  const adminMode = useAdminMode(profile);
 
   useEffect(() => {
     const q = query(collection(db, "stickers"), orderBy("createdAt", "desc"));
@@ -712,7 +715,7 @@ function StickerPicker({ user, profile, onClose, onSend, onSendMedia }) {
       <div className="sticker-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(90px,1fr))", gap: 8, maxHeight: 300, overflowY: "auto" }}>
         {stickers.length ? (
           stickers.map((sticker) => {
-            const canDelete = profile?.isAdmin || sticker.uploadedBy === user.uid;
+            const canDelete = adminMode.adminView || sticker.uploadedBy === user.uid;
             return (
               <button
                 key={sticker.id}

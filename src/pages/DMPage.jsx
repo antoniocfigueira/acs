@@ -22,6 +22,7 @@ import { AppHeader, BottomNav, GradientDefs, HeaderNewDmButton, PageFrame, SendI
 import { SheetModal } from "../components/Modal.jsx";
 import { useKeyboardViewport } from "../hooks/useKeyboardViewport.js";
 import { markLegacyDmNotificationsRead, useAuthProfile } from "../lib/auth.js";
+import { useAdminMode } from "../lib/adminMode.js";
 import { db, rtdb } from "../lib/firebase.js";
 import { routeTo } from "../lib/navigation.js";
 import { uploadMedia } from "../lib/upload.js";
@@ -118,9 +119,10 @@ function InboxRow({ row }) {
 
 function DMMessage({ message, other, user, profile, chatId }) {
   const [editing, setEditing] = useState(false);
+  const adminMode = useAdminMode(profile);
   const mine = message.uid === user.uid;
-  const canDelete = mine || profile?.isAdmin;
-  const canEdit = (mine || profile?.isAdmin) && (!message.type || message.type === "text");
+  const canDelete = mine || adminMode.adminView;
+  const canEdit = (mine || adminMode.adminView) && (!message.type || message.type === "text");
 
   const deleteMessage = async () => {
     if (!confirm("Apagar esta mensagem?")) return;
@@ -453,6 +455,7 @@ function NewConversationPicker({ user, profile, onlineUids, onClose }) {
   const [filter, setFilter] = useState("");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const adminMode = useAdminMode(profile);
 
   useEffect(() => {
     let alive = true;
@@ -464,7 +467,7 @@ function NewConversationPicker({ user, profile, onlineUids, onClose }) {
         snap.forEach((item) => {
           if (item.id === user.uid || blocked.has(item.id)) return;
           const data = { uid: item.id, ...item.data() };
-          if (data.banned && !profile?.isAdmin) return;
+          if (data.banned && !adminMode.adminView) return;
           rows.push(data);
         });
         rows.sort((a, b) => {
@@ -483,7 +486,7 @@ function NewConversationPicker({ user, profile, onlineUids, onClose }) {
     return () => {
       alive = false;
     };
-  }, [onlineUids, profile, user.uid]);
+  }, [adminMode.adminView, onlineUids, profile, user.uid]);
 
   const visible = useMemo(() => {
     const needle = filter.trim().toLowerCase().replace(/^@/, "");

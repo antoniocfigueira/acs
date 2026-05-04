@@ -17,18 +17,21 @@ import {
 import { Edit3, Heart, MessageCircle, MoreHorizontal, Pin, ThumbsDown, Trash2 } from "lucide-react";
 import { db } from "../lib/firebase.js";
 import { routeTo } from "../lib/navigation.js";
+import { useAdminMode } from "../lib/adminMode.js";
 import { Avatar, RoleBadges, StyledName, timeAgo, toast } from "../lib/ui.jsx";
 import { SheetModal } from "./Modal.jsx";
 import { createNotification } from "./Notifications.jsx";
 
 export function PostCard({ post, user, profile, compact = false }) {
+  const adminMode = useAdminMode(profile);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [myVote, setMyVote] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const mine = post.uid === user?.uid;
-  const canDelete = mine || profile?.isAdmin || profile?.role === "mod";
-  const canEdit = mine || profile?.isAdmin;
+  const canDelete = mine || adminMode.adminView || profile?.role === "mod";
+  const canEdit = mine || adminMode.adminView;
+  const canAdminPlus = adminMode.adminPlus;
   const isPinned = post.pinnedUntil && post.pinnedUntil > Date.now();
   const author = useMemo(() => ({
     uid: post.uid,
@@ -149,7 +152,7 @@ export function PostCard({ post, user, profile, compact = false }) {
             {post.editedAt ? <span style={{ fontStyle: "italic", opacity: 0.75 }}> · editado</span> : null}
           </div>
         </div>
-        {profile?.isAdmin ? (
+        {adminMode.adminView ? (
           <button className="btn-icon tap post-admin-btn" type="button" aria-label="Admin" title="Ações Admin" onClick={() => setAdminOpen(true)}>
             <MoreHorizontal size={16} />
           </button>
@@ -195,9 +198,39 @@ export function PostCard({ post, user, profile, compact = false }) {
           <button className="drawer-item w-full" type="button" onClick={pinPost}><Pin size={18} /><span className="drawer-label">{isPinned ? "Desafixar post" : "Fixar por 24h"}</span></button>
           <button className="drawer-item w-full" type="button" onClick={() => setEditOpen(true)}><Edit3 size={18} /><span className="drawer-label">Editar post</span></button>
           <button className="drawer-item w-full" type="button" onClick={deletePost}><Trash2 size={18} /><span className="drawer-label">Apagar post</span></button>
+          {canAdminPlus ? <AdminPlusPostEditor post={post} onClose={() => setAdminOpen(false)} /> : null}
         </SheetModal>
       ) : null}
     </article>
+  );
+}
+
+function AdminPlusPostEditor({ post, onClose }) {
+  const [likes, setLikes] = useState(String(post.likes || 0));
+  const [dislikes, setDislikes] = useState(String(post.dislikes || 0));
+  const [commentsCount, setCommentsCount] = useState(String(post.commentsCount || 0));
+  const save = async () => {
+    try {
+      await updateDoc(doc(db, "posts", post.id), {
+        likes: Number(likes) || 0,
+        dislikes: Number(dislikes) || 0,
+        commentsCount: Number(commentsCount) || 0,
+        adminEditedAt: serverTimestamp()
+      });
+      toast("Admin+ atualizado", "success");
+      onClose?.();
+    } catch (err) {
+      toast(`Erro: ${err.message}`, "error");
+    }
+  };
+  return (
+    <div className="admin-plus-inline">
+      <div className="settings-title">Admin+</div>
+      <input className="input" type="number" value={likes} onChange={(event) => setLikes(event.target.value)} placeholder="Likes" />
+      <input className="input" type="number" value={dislikes} onChange={(event) => setDislikes(event.target.value)} placeholder="Dislikes" />
+      <input className="input" type="number" value={commentsCount} onChange={(event) => setCommentsCount(event.target.value)} placeholder="Comentários" />
+      <button className="btn-primary" type="button" onClick={save}>Guardar métricas</button>
+    </div>
   );
 }
 

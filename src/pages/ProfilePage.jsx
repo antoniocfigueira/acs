@@ -18,6 +18,7 @@ import { SheetModal } from "../components/Modal.jsx";
 import { PostCard } from "../components/PostCard.jsx";
 import { usePullToRefresh } from "../hooks/usePullToRefresh.js";
 import { logout, updateMyProfile, useAuthProfile } from "../lib/auth.js";
+import { useAdminMode } from "../lib/adminMode.js";
 import { db } from "../lib/firebase.js";
 import { routeTo } from "../lib/navigation.js";
 import { uploadMedia } from "../lib/upload.js";
@@ -235,6 +236,63 @@ function FollowListModal({ title, uids, empty, onClose }) {
   );
 }
 
+function AdminPlusProfileModal({ profile, onClose }) {
+  const [form, setForm] = useState({
+    name: profile.name || "",
+    username: profile.username || "",
+    photoURL: profile.photoURL || "",
+    bio: profile.bio || "",
+    points: String(profile.points || 0),
+    nameColor: profile.nameColor || "",
+    nameStyle: profile.nameStyle || "",
+    role: profile.role || "user"
+  });
+  const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const save = async () => {
+    try {
+      await updateDoc(doc(db, "users", profile.uid), {
+        name: form.name.trim(),
+        username: form.username.trim().toLowerCase().replace(/^@/, ""),
+        photoURL: form.photoURL.trim(),
+        bio: form.bio.trim().slice(0, 180),
+        points: Number(form.points) || 0,
+        nameColor: form.nameColor.trim() || null,
+        nameStyle: form.nameStyle.trim() || null,
+        role: form.role,
+        isAdmin: form.role === "admin",
+        isMod: form.role === "mod"
+      });
+      toast("Perfil atualizado por Admin+", "success");
+      onClose();
+    } catch (err) {
+      toast(`Erro: ${err.message}`, "error");
+    }
+  };
+  return (
+    <SheetModal title="Admin+ perfil" onClose={onClose}>
+      <div className="admin-plus-inline">
+        <input className="input" placeholder="Nome" value={form.name} onChange={(event) => set("name", event.target.value)} />
+        <input className="input" placeholder="@username" value={form.username} onChange={(event) => set("username", event.target.value)} />
+        <input className="input" placeholder="Foto URL" value={form.photoURL} onChange={(event) => set("photoURL", event.target.value)} />
+        <textarea className="input" rows="4" placeholder="Bio" value={form.bio} onChange={(event) => set("bio", event.target.value)} />
+        <input className="input" type="number" placeholder="Pontos" value={form.points} onChange={(event) => set("points", event.target.value)} />
+        <input className="input" placeholder="Cor do nome (#hex, gold...)" value={form.nameColor} onChange={(event) => set("nameColor", event.target.value)} />
+        <select className="input" value={form.nameStyle} onChange={(event) => set("nameStyle", event.target.value)}>
+          <option value="">Sem efeito</option>
+          <option value="grad">Gradiente</option>
+          <option value="glow">Glow</option>
+        </select>
+        <select className="input" value={form.role} onChange={(event) => set("role", event.target.value)}>
+          <option value="user">User</option>
+          <option value="mod">Mod</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button className="btn-primary" type="button" onClick={save}>Guardar</button>
+      </div>
+    </SheetModal>
+  );
+}
+
 export function ProfilePage({ search }) {
   const { loading: authLoading, user, profile: currentProfile, error: authError } = useAuthProfile({ requireUser: true });
   const params = useMemo(() => new URLSearchParams(search || ""), [search]);
@@ -246,6 +304,8 @@ export function ProfilePage({ search }) {
   const [tab, setTab] = useState("posts");
   const [editOpen, setEditOpen] = useState(false);
   const [followList, setFollowList] = useState(null);
+  const [adminEditOpen, setAdminEditOpen] = useState(false);
+  const adminMode = useAdminMode(currentProfile);
   const refreshProfile = useCallback(() => {
     setRefreshKey((value) => value + 1);
     toast("Perfil atualizado!", "success");
@@ -348,6 +408,7 @@ export function ProfilePage({ search }) {
                 {!isMe ? <button className={iFollow ? "btn-ghost" : "btn-primary"} type="button" onClick={follow}>{iFollow ? "A seguir" : "Seguir"}</button> : null}
                 {!isMe ? <button className="btn-primary" type="button" onClick={openDm}>Mensagem</button> : null}
                 {!isMe ? <button className="btn-ghost" type="button" onClick={block}>{isBlocked ? "Desbloquear" : "Bloquear"}</button> : null}
+                {!isMe && adminMode.adminPlus ? <button className="btn-ghost" type="button" onClick={() => setAdminEditOpen(true)}>Admin+</button> : null}
                 {isMe ? <button className="btn-ghost" type="button" onClick={async () => { if (confirm("Sair da conta?")) await logout(); }}>Sair</button> : null}
               </div>
             </div>
@@ -378,6 +439,7 @@ export function ProfilePage({ search }) {
       </div>
       <BottomNav active="profile.html" />
       {editOpen && viewed.profile ? <EditProfileModal profile={viewed.profile} onClose={() => setEditOpen(false)} /> : null}
+      {adminEditOpen && viewed.profile ? <AdminPlusProfileModal profile={viewed.profile} onClose={() => setAdminEditOpen(false)} /> : null}
       {followList === "followers" ? <FollowListModal title="Seguidores" uids={followers} empty="Ainda ninguém segue este perfil." onClose={() => setFollowList(null)} /> : null}
       {followList === "following" ? <FollowListModal title="A seguir" uids={following} empty="Este perfil ainda não segue ninguém." onClose={() => setFollowList(null)} /> : null}
     </PageFrame>

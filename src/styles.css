@@ -266,30 +266,65 @@ body.chat-page .chat-input {
   animation: newsTitleShift 2.8s ease-in-out infinite alternate;
 }
 
-.header-logo-button {
+.alfa-club-egg {
   border: 0;
   padding: 0;
   background: transparent;
-  font: inherit;
   cursor: pointer;
   transform-origin: 50% 50%;
-  will-change: transform, filter;
+  will-change: transform, filter, background-position;
+  backface-visibility: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.app-header-title .logo.logo-pop {
-  animation: logoPopSmooth 720ms cubic-bezier(.22,1,.36,1) both !important;
+.app-header-title .alfa-club-egg.alfa-club-egg-active {
+  animation:
+    alfaClubTitleShiftFast 930ms linear infinite,
+    alfaClubEggBounce 900ms cubic-bezier(.18,1.55,.28,1) both !important;
 }
 
-@keyframes logoPopSmooth {
-  0% { transform: translateZ(0) scale(1); filter: drop-shadow(0 0 0 rgba(236,72,153,0)); }
-  45% { transform: translateZ(0) scale(1.085); filter: drop-shadow(0 0 12px rgba(236,72,153,.52)) drop-shadow(0 0 20px rgba(125,211,252,.32)); }
-  75% { transform: translateZ(0) scale(1.025); filter: drop-shadow(0 0 7px rgba(236,72,153,.28)); }
-  100% { transform: translateZ(0) scale(1); filter: drop-shadow(0 0 0 rgba(236,72,153,0)); }
+@keyframes alfaClubEggBounce {
+  0% {
+    transform: translateZ(0) scale(1);
+    filter: drop-shadow(0 0 0 rgba(236,72,153,0));
+  }
+  18% {
+    transform: translateZ(0) scale(.94);
+    filter: drop-shadow(0 0 8px rgba(125,211,252,.28));
+  }
+  44% {
+    transform: translateZ(0) scale(1.22);
+    filter:
+      drop-shadow(0 0 12px rgba(236,72,153,.78))
+      drop-shadow(0 0 24px rgba(125,211,252,.58))
+      drop-shadow(0 0 34px rgba(139,92,246,.32));
+  }
+  64% {
+    transform: translateZ(0) scale(.985);
+    filter:
+      drop-shadow(0 0 10px rgba(236,72,153,.5))
+      drop-shadow(0 0 18px rgba(125,211,252,.38));
+  }
+  80% {
+    transform: translateZ(0) scale(1.065);
+    filter:
+      drop-shadow(0 0 8px rgba(236,72,153,.35))
+      drop-shadow(0 0 14px rgba(125,211,252,.25));
+  }
+  100% {
+    transform: translateZ(0) scale(1);
+    filter: drop-shadow(0 0 0 rgba(236,72,153,0));
+  }
 }
 
 @keyframes newsTitleShift {
   from { background-position: 0% 50%; }
   to { background-position: 100% 50%; }
+}
+
+@keyframes alfaClubTitleShiftFast {
+  from { background-position: 0% 50%; }
+  to { background-position: 300% 50%; }
 }
 
 .profile-cta {
@@ -3440,4 +3475,23 @@ html[data-theme="steampunk"] .settings-action {
   border: 0 !important;
   border-bottom: max(2px, .12em) solid #151515 !important;
   border-radius: 0 0 999px 999px !important;
+}
+
+.admin-plus-inline {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-plus-inline .settings-title {
+  margin: 0 0 2px;
+}
+
+.admin-plus-inline .input {
+  width: 100%;
+  padding: 11px 14px;
+}
+
+.admin-plus-inline textarea.input {
+  resize: vertical;
+  font-family: inherit;
 }

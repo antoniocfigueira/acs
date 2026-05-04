@@ -26,6 +26,7 @@ import { NotificationsButton, NotificationsModal } from "../components/Notificat
 import { PostCard } from "../components/PostCard.jsx";
 import { usePullToRefresh } from "../hooks/usePullToRefresh.js";
 import { logout, updateMyProfile, useAuthProfile } from "../lib/auth.js";
+import { setAdminPlusEnabled, setAdminViewEnabled, useAdminMode } from "../lib/adminMode.js";
 import { db, initPush } from "../lib/firebase.js";
 import { routeTo } from "../lib/navigation.js";
 import { uploadMedia } from "../lib/upload.js";
@@ -175,6 +176,7 @@ function itemIsUnlocked(profile, item) {
 }
 
 function Composer({ user, profile }) {
+  const adminMode = useAdminMode(profile);
   const [text, setText] = useState("");
   const [media, setMedia] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -224,7 +226,7 @@ function Composer({ user, profile }) {
         likes: 0,
         dislikes: 0,
         commentsCount: 0,
-        notifyAll: !!(profile.isAdmin && notifyAll),
+        notifyAll: !!(adminMode.adminView && notifyAll),
         createdAt: serverTimestamp()
       };
       if (media?.type === "image" || media?.type === "video") {
@@ -272,7 +274,7 @@ function Composer({ user, profile }) {
               <ImageIcon size={16} />
               <input ref={fileRef} className="native-file-input" type="file" accept="image/*,video/*" disabled={busy} onChange={(event) => pickFile(event.target.files?.[0])} />
             </label>
-            {profile?.isAdmin ? (
+            {adminMode.adminView ? (
               <button className={`btn-ghost tap admin-broadcast-btn ${notifyAll ? "active" : ""}`} type="button" aria-pressed={notifyAll} style={{ padding: "8px 12px", fontSize: 13 }} title="Notificar todos os users" onClick={() => setNotifyAll((v) => !v)}>
                 <Bell size={16} />
               </button>
@@ -743,11 +745,12 @@ function ShopModal({ user, profile, onClose }) {
 function BugReportModal({ user, profile, onClose }) {
   const [text, setText] = useState("");
   const [reports, setReports] = useState([]);
+  const adminMode = useAdminMode(profile);
   useEffect(() => {
-    if (!profile?.isAdmin) return undefined;
+    if (!adminMode.adminView) return undefined;
     const q = query(collection(db, "bugReports"), orderBy("at", "desc"), fsLimit(40));
     return onSnapshot(q, (snap) => setReports(snap.docs.map((item) => ({ id: item.id, ...item.data() }))));
-  }, [profile?.isAdmin]);
+  }, [adminMode.adminView]);
   const submit = async () => {
     const clean = text.trim();
     if (!clean) return;
@@ -770,7 +773,7 @@ function BugReportModal({ user, profile, onClose }) {
     <SheetModal title="Reportar bug" onClose={onClose}>
       <textarea className="input" rows="5" placeholder="Descreve o bug..." value={text} onChange={(event) => setText(event.target.value)} style={{ width: "100%", padding: 12, fontFamily: "inherit" }} />
       <button className="btn-primary" type="button" style={{ width: "100%", marginTop: 10 }} onClick={submit}>Enviar report</button>
-      {profile?.isAdmin ? (
+      {adminMode.adminView ? (
         <div style={{ marginTop: 14, maxHeight: 260, overflowY: "auto" }}>
           {reports.map((report) => (
             <div className={`notif ${report.resolved ? "" : "unread"}`} key={report.id}>
@@ -807,6 +810,7 @@ function ThemePreview({ item }) {
 }
 
 function SettingsPanel({ user, profile, onClose, onBack, onAdmin }) {
+  const adminMode = useAdminMode(profile);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem("acs_theme_v1") || "dark"; } catch { return "dark"; }
   });
@@ -857,6 +861,12 @@ function SettingsPanel({ user, profile, onClose, onBack, onAdmin }) {
   const toggleDebug = (value) => {
     setDebug(value);
     try { localStorage.setItem("acs_debug_toasts_v1", value ? "1" : "0"); } catch {}
+  };
+  const toggleAdminView = (value) => {
+    setAdminViewEnabled(value);
+  };
+  const toggleAdminPlus = (value) => {
+    setAdminPlusEnabled(value);
   };
 
   return (
@@ -922,14 +932,26 @@ function SettingsPanel({ user, profile, onClose, onBack, onAdmin }) {
         {profile?.isAdmin ? (
           <div className="settings-section" id="adminSettingsSection">
             <div className="settings-title">Admin</div>
-            <button className="drawer-item w-full" type="button" onClick={() => { onClose(); onAdmin?.(); }}>
-              <DrawerIcon className="god-wrap"><Shield size={18} /></DrawerIcon>
-              <span className="drawer-label">God Mode</span>
-            </button>
-            <button className="drawer-item w-full" type="button" onClick={() => { onClose(); onAdmin?.(); }}>
+            <label className="settings-row">
+              <span className="settings-row-text">
+                <span className="settings-row-label">Modo admin</span>
+                <span className="settings-row-hint">Ver a app como admin ou como user</span>
+              </span>
+              <Toggle checked={adminMode.adminView} onChange={toggleAdminView} />
+            </label>
+            <label className="settings-row">
+              <span className="settings-row-text">
+                <span className="settings-row-label">Admin+</span>
+                <span className="settings-row-hint">Mostrar edições avançadas em toda a app</span>
+              </span>
+              <Toggle checked={adminMode.adminPlus} disabled={!adminMode.adminView} onChange={toggleAdminPlus} />
+            </label>
+            {adminMode.adminView ? (
+              <button className="drawer-item w-full" type="button" onClick={() => { onClose(); onAdmin?.(); }}>
               <DrawerIcon><Edit3 size={18} /></DrawerIcon>
               <span className="drawer-label">Editar users, roles e pontos</span>
-            </button>
+              </button>
+            ) : null}
             <div className="settings-row-hint" style={{ marginTop: 8 }}>OPÇÕES ADMIN</div>
           </div>
         ) : null}
@@ -951,6 +973,7 @@ function DrawerIcon({ children, className = "" }) {
 
 function FeedMenu({ onClose, onSearch, onRanking, onShop, onBugs, onArchive, onSettings, onAdmin, user, profile }) {
   const dmUnread = useDmUnread(user);
+  const adminMode = useAdminMode(profile);
   const [versionText, setVersionText] = useState("versao beta 1.1");
   useEffect(() => {
     return onSnapshot(doc(db, "appConfig", "ui"), (snap) => {
@@ -1028,28 +1051,28 @@ function FeedMenu({ onClose, onSearch, onRanking, onShop, onBugs, onArchive, onS
             <DrawerIcon><Settings size={18} /></DrawerIcon>
             <span className="drawer-label">Definições</span>
           </button>
-          {profile?.isAdmin ? (
+          {adminMode.adminView ? (
             <button className="drawer-item w-full" id="drawerAdminBtn" style={{ "--drawer-item-index": 7 }} type="button" onClick={() => open(onAdmin)}>
               <DrawerIcon className="god-wrap"><Shield size={18} /></DrawerIcon>
               <span className="drawer-label">God Mode</span>
             </button>
           ) : null}
-          <button className="drawer-item w-full" style={{ "--drawer-item-index": profile?.isAdmin ? 8 : 7 }} type="button" onClick={() => open(onBugs)}>
+          <button className="drawer-item w-full" style={{ "--drawer-item-index": adminMode.adminView ? 8 : 7 }} type="button" onClick={() => open(onBugs)}>
             <DrawerIcon><Bug size={18} /></DrawerIcon>
-            <span className="drawer-label">{profile?.isAdmin ? "Bugs Report" : "Bugs / Report"}</span>
+            <span className="drawer-label">{adminMode.adminView ? "Bugs Report" : "Bugs / Report"}</span>
           </button>
         </div>
 
         <div style={{ flex: 1 }} />
         <div className="drawer-version">
           <span>{versionText}</span>
-          {profile?.isAdmin ? (
+          {adminMode.adminView ? (
             <button className="drawer-version-edit" type="button" aria-label="Editar texto da versão" onClick={editVersionText}>
               <Edit3 size={12} />
             </button>
           ) : null}
-          {profile?.isAdmin ? <><span> · </span><span className="grad-text">Admin Access</span></> : null}
-          {!profile?.isAdmin && (profile?.role === "mod" || profile?.isMod) ? <><span> · </span><span className="grad-text">Moderator Access</span></> : null}
+          {adminMode.adminView ? <><span> · </span><span className="grad-text">Admin Access</span></> : null}
+          {!adminMode.adminView && (profile?.role === "mod" || profile?.isMod) ? <><span> · </span><span className="grad-text">Moderator Access</span></> : null}
         </div>
         <div className="drawer-section" style={{ borderTop: "1px solid var(--border)", padding: "12px 18px" }}>
           <button className="drawer-item w-full" type="button" style={{ color: "#fca5a5" }} onClick={async () => { if (confirm("Sair da conta?")) await logout(); }}>
@@ -1306,7 +1329,8 @@ function ArchiveModal({ user, profile, onClose, onBack }) {
   const [archiveError, setArchiveError] = useState("");
   const [entriesError, setEntriesError] = useState("");
   const [editor, setEditor] = useState(null);
-  const isArchiveAdmin = !!profile?.isAdmin || profile?.role === "admin";
+  const adminMode = useAdminMode(profile);
+  const isArchiveAdmin = !!adminMode.adminView;
   const allRoles = useRoles(isArchiveAdmin);
   const rolesById = useMemo(() => new Map(allRoles.map((role) => [role.id, role])), [allRoles]);
   const sortArchiveItems = (items) => [...items].sort((a, b) => {
@@ -1356,10 +1380,10 @@ function ArchiveModal({ user, profile, onClose, onBack }) {
   const profileRoles = useMemo(() => {
     const roles = new Set(Array.isArray(profile?.roles) ? profile.roles : []);
     if (profile?.role) roles.add(profile.role);
-    if (profile?.isAdmin || profile?.role === "admin") roles.add("admin");
+    if (adminMode.adminView) roles.add("admin");
     if (profile?.isMod || profile?.role === "mod") roles.add("mod");
     return roles;
-  }, [profile]);
+  }, [adminMode.adminView, profile]);
 
   const canSeeSection = (section) => {
     if (isArchiveAdmin || section?.createdBy === user?.uid) return true;
@@ -1595,21 +1619,33 @@ export function FeedPage({ search = "" }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const containerRef = useRef(null);
   const logoTimerRef = useRef(null);
-  const [logoPop, setLogoPop] = useState(false);
+  const logoAudioRef = useRef(null);
+  const [logoEggActive, setLogoEggActive] = useState(false);
   const posts = usePosts(user, profile, filter, refreshKey);
   const stories = useStories(refreshKey);
   const refreshFeed = useCallback(() => {
     setRefreshKey((value) => value + 1);
     toast("Feed atualizado!", "success");
   }, []);
-  const popLogo = useCallback(() => {
-    if (logoTimerRef.current) window.clearTimeout(logoTimerRef.current);
-    setLogoPop(false);
-    requestAnimationFrame(() => {
-      setLogoPop(true);
-      logoTimerRef.current = window.setTimeout(() => setLogoPop(false), 800);
-    });
+  const playLogoEggSound = useCallback(() => {
+    try {
+      const audio = logoAudioRef.current || new Audio(`${import.meta.env.BASE_URL || "/"}sounds/notification.mp3`);
+      logoAudioRef.current = audio;
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = 0.85;
+      audio.play()?.catch?.(() => {});
+    } catch {}
   }, []);
+  const popLogo = useCallback(() => {
+    playLogoEggSound();
+    if (logoTimerRef.current) window.clearTimeout(logoTimerRef.current);
+    setLogoEggActive(false);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setLogoEggActive(true));
+      logoTimerRef.current = window.setTimeout(() => setLogoEggActive(false), 900);
+    });
+  }, [playLogoEggSound]);
 
   usePullToRefresh(containerRef, {
     enabled: !!user && !!profile && !modal,
@@ -1638,10 +1674,10 @@ export function FeedPage({ search = "" }) {
         <div className="app-header-title">
           <div
             id="appLogoTitle"
-            className={`logo grad-text ${logoPop ? "logo-pop" : ""}`}
+            className={`logo grad-text alfa-club-egg ${logoEggActive ? "alfa-club-egg-active" : ""}`}
             role="button"
             tabIndex={0}
-            onClick={popLogo}
+            onPointerDown={popLogo}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
