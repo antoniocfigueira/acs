@@ -237,57 +237,145 @@ function FollowListModal({ title, uids, empty, onClose }) {
 }
 
 function AdminPlusProfileModal({ profile, onClose }) {
+  // Followers / following are stored as UID arrays (the follow button does
+  // arrayUnion / arrayRemove on the actual array). Letting the admin set
+  // a raw "count" would desync the array with the displayed number, so we
+  // expose them as `*CountOverride` fields instead — when non-empty the
+  // ProfilePage UI shows the override; otherwise it falls back to the
+  // array length. Same trick for postsCount which already exists in the
+  // schema as a denormalised number alongside an array of post docs.
   const [form, setForm] = useState({
     name: profile.name || "",
     username: profile.username || "",
     photoURL: profile.photoURL || "",
     bio: profile.bio || "",
     points: String(profile.points || 0),
+    idNumber: String(profile.idNumber || ""),
     nameColor: profile.nameColor || "",
     nameStyle: profile.nameStyle || "",
-    role: profile.role || "user"
+    role: profile.role || "user",
+    banned: !!profile.banned,
+    followersCountOverride: profile.followersCountOverride != null ? String(profile.followersCountOverride) : "",
+    followingCountOverride: profile.followingCountOverride != null ? String(profile.followingCountOverride) : "",
+    postsCountOverride: profile.postsCountOverride != null ? String(profile.postsCountOverride) : "",
+    profileTheme: profile.profileTheme || ""
   });
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
   const set = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+
+  const onPickPhoto = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const up = await uploadMedia(file);
+      if (up?.url) set("photoURL", up.url);
+    } catch (err) {
+      toast(`Upload falhou: ${err.message}`, "error");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const numOrNull = (raw) => {
+    const trimmed = String(raw ?? "").trim();
+    if (trimmed === "") return null;
+    const n = Number(trimmed);
+    return Number.isFinite(n) ? n : null;
+  };
+
   const save = async () => {
+    setBusy(true);
     try {
       await updateDoc(doc(db, "users", profile.uid), {
         name: form.name.trim(),
         username: form.username.trim().toLowerCase().replace(/^@/, ""),
         photoURL: form.photoURL.trim(),
-        bio: form.bio.trim().slice(0, 180),
+        bio: form.bio.trim().slice(0, 240),
         points: Number(form.points) || 0,
+        idNumber: form.idNumber.trim() ? Number(form.idNumber) || form.idNumber.trim() : null,
         nameColor: form.nameColor.trim() || null,
         nameStyle: form.nameStyle.trim() || null,
         role: form.role,
         isAdmin: form.role === "admin",
-        isMod: form.role === "mod"
+        isMod: form.role === "mod",
+        banned: !!form.banned,
+        followersCountOverride: numOrNull(form.followersCountOverride),
+        followingCountOverride: numOrNull(form.followingCountOverride),
+        postsCountOverride: numOrNull(form.postsCountOverride),
+        profileTheme: form.profileTheme.trim() || null
       });
-      toast("Perfil atualizado por Admin+", "success");
+      toast("Perfil atualizado (SYSTEM)", "success");
       onClose();
     } catch (err) {
       toast(`Erro: ${err.message}`, "error");
+    } finally {
+      setBusy(false);
     }
   };
+
   return (
-    <SheetModal title="Admin+ perfil" onClose={onClose}>
+    <SheetModal title="SYSTEM — perfil" onClose={onClose}>
       <div className="admin-plus-inline">
+        <div className="settings-row-hint" style={{ marginBottom: 4 }}>
+          Edição privilegiada — todos os campos vão directamente para a base de dados.
+        </div>
+
+        <label className="field-label">Foto de perfil</label>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {form.photoURL ? (
+            <img src={form.photoURL} alt="" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: "1px solid var(--border)" }} />
+          ) : (
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--bg-2)", border: "1px solid var(--border)" }} />
+          )}
+          <button className="btn-ghost" type="button" disabled={uploading} onClick={() => fileRef.current?.click()}>
+            {uploading ? "A enviar…" : "Carregar imagem"}
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" onChange={onPickPhoto} style={{ display: "none" }} />
+        </div>
+        <input className="input" placeholder="…ou Foto URL" value={form.photoURL} onChange={(event) => set("photoURL", event.target.value)} />
+
+        <label className="field-label">Identidade</label>
         <input className="input" placeholder="Nome" value={form.name} onChange={(event) => set("name", event.target.value)} />
         <input className="input" placeholder="@username" value={form.username} onChange={(event) => set("username", event.target.value)} />
-        <input className="input" placeholder="Foto URL" value={form.photoURL} onChange={(event) => set("photoURL", event.target.value)} />
+        <input className="input" placeholder="ID #" value={form.idNumber} onChange={(event) => set("idNumber", event.target.value)} />
         <textarea className="input" rows="4" placeholder="Bio" value={form.bio} onChange={(event) => set("bio", event.target.value)} />
+
+        <label className="field-label">Métricas (override)</label>
         <input className="input" type="number" placeholder="Pontos" value={form.points} onChange={(event) => set("points", event.target.value)} />
-        <input className="input" placeholder="Cor do nome (#hex, gold...)" value={form.nameColor} onChange={(event) => set("nameColor", event.target.value)} />
+        <input className="input" type="number" placeholder="Nº de seguidores (vazio = real)" value={form.followersCountOverride} onChange={(event) => set("followersCountOverride", event.target.value)} />
+        <input className="input" type="number" placeholder="Nº a seguir (vazio = real)" value={form.followingCountOverride} onChange={(event) => set("followingCountOverride", event.target.value)} />
+        <input className="input" type="number" placeholder="Nº de posts (vazio = real)" value={form.postsCountOverride} onChange={(event) => set("postsCountOverride", event.target.value)} />
+
+        <label className="field-label">Estilo do nome</label>
+        <input className="input" placeholder="Cor do nome (#hex, gold…)" value={form.nameColor} onChange={(event) => set("nameColor", event.target.value)} />
         <select className="input" value={form.nameStyle} onChange={(event) => set("nameStyle", event.target.value)}>
           <option value="">Sem efeito</option>
           <option value="grad">Gradiente</option>
           <option value="glow">Glow</option>
         </select>
+        <input className="input" placeholder="Tema do hero do perfil (galaxy, neon…)" value={form.profileTheme} onChange={(event) => set("profileTheme", event.target.value)} />
+
+        <label className="field-label">Permissões</label>
         <select className="input" value={form.role} onChange={(event) => set("role", event.target.value)}>
           <option value="user">User</option>
           <option value="mod">Mod</option>
           <option value="admin">Admin</option>
         </select>
-        <button className="btn-primary" type="button" onClick={save}>Guardar</button>
+        <label className="settings-row" style={{ padding: "8px 0" }}>
+          <span className="settings-row-text">
+            <span className="settings-row-label">Banido</span>
+            <span className="settings-row-hint">Bloqueia login e interações na app</span>
+          </span>
+          <input type="checkbox" checked={form.banned} onChange={(event) => set("banned", event.target.checked)} />
+        </label>
+
+        <button className="btn-primary" type="button" disabled={busy} onClick={save}>
+          {busy ? "A guardar…" : "Guardar"}
+        </button>
       </div>
     </SheetModal>
   );
@@ -398,9 +486,12 @@ export function ProfilePage({ search }) {
               <div className="profile-id">ID <span style={{ color: "var(--text)", marginLeft: 4, fontWeight: 700 }}>#{viewed.profile.idNumber || "?"}</span></div>
               <div className="profile-bio">{(viewed.profile.bio || "").trim() || (isMe ? "Adiciona uma bio ao teu perfil..." : "")}</div>
               <div className="profile-stats">
-                <div className="stat"><div className="n">{posts.posts.length || viewed.profile.postsCount || 0}</div><div className="l">Posts</div></div>
-                <button className="stat stat-clickable tap" type="button" onClick={() => setFollowList("followers")}><div className="n">{followers.length}</div><div className="l">Seguidores</div></button>
-                <button className="stat stat-clickable tap" type="button" onClick={() => setFollowList("following")}><div className="n">{following.length}</div><div className="l">A seguir</div></button>
+                {/* Each count honours an admin SYSTEM override field
+                    (set via AdminPlusProfileModal). When the override is
+                    null/undefined we fall back to the natural value. */}
+                <div className="stat"><div className="n">{viewed.profile.postsCountOverride != null ? viewed.profile.postsCountOverride : (posts.posts.length || viewed.profile.postsCount || 0)}</div><div className="l">Posts</div></div>
+                <button className="stat stat-clickable tap" type="button" onClick={() => setFollowList("followers")}><div className="n">{viewed.profile.followersCountOverride != null ? viewed.profile.followersCountOverride : followers.length}</div><div className="l">Seguidores</div></button>
+                <button className="stat stat-clickable tap" type="button" onClick={() => setFollowList("following")}><div className="n">{viewed.profile.followingCountOverride != null ? viewed.profile.followingCountOverride : following.length}</div><div className="l">A seguir</div></button>
                 <div className="stat"><div className="n grad-text">{viewed.profile.points || 0}</div><div className="l">Pontos</div></div>
               </div>
               <div className="profile-cta">
@@ -408,7 +499,11 @@ export function ProfilePage({ search }) {
                 {!isMe ? <button className={iFollow ? "btn-ghost" : "btn-primary"} type="button" onClick={follow}>{iFollow ? "A seguir" : "Seguir"}</button> : null}
                 {!isMe ? <button className="btn-primary" type="button" onClick={openDm}>Mensagem</button> : null}
                 {!isMe ? <button className="btn-ghost" type="button" onClick={block}>{isBlocked ? "Desbloquear" : "Bloquear"}</button> : null}
-                {!isMe && adminMode.adminPlus ? <button className="btn-ghost" type="button" onClick={() => setAdminEditOpen(true)}>Admin+</button> : null}
+                {/* SYSTEM-only edit shortcut for any user, including
+                    yourself — the admin can override their own metrics
+                    too. The button only appears when the SYSTEM toggle
+                    is on (adminMode.system). */}
+                {adminMode.system ? <button className="btn-ghost" type="button" onClick={() => setAdminEditOpen(true)}>SYSTEM</button> : null}
                 {isMe ? <button className="btn-ghost" type="button" onClick={async () => { if (confirm("Sair da conta?")) await logout(); }}>Sair</button> : null}
               </div>
             </div>

@@ -27,10 +27,54 @@ import { PostCard } from "../components/PostCard.jsx";
 import { usePullToRefresh } from "../hooks/usePullToRefresh.js";
 import { logout, updateMyProfile, useAuthProfile } from "../lib/auth.js";
 import { setAdminPlusEnabled, setAdminViewEnabled, useAdminMode } from "../lib/adminMode.js";
-import { db, initPush } from "../lib/firebase.js";
+import { db, initPush, rtdb } from "../lib/firebase.js";
+import { ref as rtRef, set as rtSet } from "firebase/database";
 import { routeTo } from "../lib/navigation.js";
 import { uploadMedia } from "../lib/upload.js";
 import { Avatar, debugToastsEnabled, Empty, Loading, RoleBadges, StyledName, toast } from "../lib/ui.jsx";
+
+// SYSTEM-mode "wipe everything" implementation. Iterates each top-level
+// collection we consider "user-generated public content" and deletes
+// every document. For collections with subcollections (archiveSections
+// → entries, posts → comments / votes, etc.) we recurse one level so
+// stray children don't survive. Users + appConfig + usernames are
+// deliberately preserved so accounts and app-level settings stay intact.
+//
+// We deliberately use simple per-doc deleteDoc calls (no batching) for
+// portability — on small/medium datasets this is fast enough and gives
+// us per-doc error isolation. For very large datasets a Cloud Function
+// equivalent would be preferable.
+async function wipeFirestoreCollection(collName, recurseSubcols = []) {
+  const snap = await getDocs(collection(db, collName));
+  for (const docSnap of snap.docs) {
+    for (const sub of recurseSubcols) {
+      try {
+        const subSnap = await getDocs(collection(db, collName, docSnap.id, sub));
+        for (const subDoc of subSnap.docs) {
+          await deleteDoc(subDoc.ref).catch(() => {});
+        }
+      } catch {}
+    }
+    await deleteDoc(docSnap.ref).catch(() => {});
+  }
+}
+
+async function wipeAllData() {
+  // Realtime Database — global chat lives at /chat/messages.
+  try { await rtSet(rtRef(rtdb, "chat/messages"), null); } catch {}
+  // Firestore — public collections. Order doesn't really matter; we
+  // run them in parallel for speed.
+  await Promise.all([
+    wipeFirestoreCollection("posts", ["comments", "votes", "pollVotes"]),
+    wipeFirestoreCollection("stories"),
+    wipeFirestoreCollection("news"),
+    wipeFirestoreCollection("reports"),
+    wipeFirestoreCollection("archiveSections", ["entries"]),
+    wipeFirestoreCollection("roles"),
+    wipeFirestoreCollection("notifications", ["items"]),
+    wipeFirestoreCollection("chats", ["messages"])
+  ]);
+}
 
 const SHOP_ITEMS = [
   { id: "color_cyan", unlockField: "unlockedNameColors", unlockValue: "#22d3ee", name: "Cor Azul", sub: "Nome em azul", price: 50, preview: <span className="name-sample" style={{ color: "#22d3ee" }}>Nome</span>, apply: { nameColor: "#22d3ee" } },
@@ -417,7 +461,7 @@ function Stories({ stories, user, profile }) {
           );
         })}
       </div>
-      {viewer ? <StoryViewer stories={viewer} user={user} onClose={() => setViewer(null)} /> : null}
+      {viewer ? <StoryViewer stories={viewer} user={user} profile={profile} onClose={() => setViewer(null)} /> : null}
       {creatorOpen ? <StoryCreateModal fileRef={fileRef} onClose={() => setCreatorOpen(false)} onCreate={createStory} /> : null}
     </>
   );
@@ -452,9 +496,66 @@ function StoryCreateModal({ fileRef, onClose, onCreate }) {
   );
 }
 
-function StoryViewer({ stories, user, onClose }) {
+// SYSTEM editor for an individual story. Lets an admin with SYSTEM on
+// rewrite literally every editable field on the story doc (text, media,
+// expiry, view counter). Wrapped in a SheetModal so it sits above the
+// story viewer overlay without fighting its full-screen click handler.
+function SystemStoryEditor({ story, onClose }) {
+  const [text, setText] = useState(story.text || "");
+  const [mediaURL, setMediaURL] = useState(story.mediaURL || "");
+  const [mediaType, setMediaType] = useState(story.mediaType || "");
+  const [authorName, setAuthorName] = useState(story.authorName || "");
+  const [authorUsername, setAuthorUsername] = useState(story.authorUsername || "");
+  const [authorPhoto, setAuthorPhoto] = useState(story.authorPhoto || "");
+  const [expiresAtMs, setExpiresAtMs] = useState(String(story.expiresAt || ""));
+  const [viewers, setViewers] = useState(String(
+    Array.isArray(story.viewers) ? story.viewers.length :
+    (typeof story.viewersCount === "number" ? story.viewersCount : 0)
+  ));
+  const save = async () => {
+    try {
+      await updateDoc(doc(db, "stories", story.id), {
+        text: text.slice(0, 240),
+        mediaURL: mediaURL.trim(),
+        mediaType: mediaType.trim(),
+        authorName: authorName.trim(),
+        authorUsername: authorUsername.trim().replace(/^@/, ""),
+        authorPhoto: authorPhoto.trim(),
+        expiresAt: expiresAtMs.trim() ? Number(expiresAtMs) : null,
+        viewersCount: Number(viewers) || 0,
+        adminEditedAt: serverTimestamp()
+      });
+      toast("Story atualizada (SYSTEM)", "success");
+      onClose();
+    } catch (err) {
+      toast(`Erro: ${err.message}`, "error");
+    }
+  };
+  return (
+    <SheetModal title="SYSTEM — story" onClose={onClose}>
+      <div className="admin-plus-inline">
+        <label className="field-label">Conteúdo</label>
+        <textarea className="input" rows="3" value={text} onChange={(event) => setText(event.target.value)} placeholder="Texto" />
+        <input className="input" value={mediaURL} onChange={(event) => setMediaURL(event.target.value)} placeholder="Media URL" />
+        <input className="input" value={mediaType} onChange={(event) => setMediaType(event.target.value)} placeholder="Media type (image/video)" />
+        <label className="field-label">Autor (denormalizado)</label>
+        <input className="input" value={authorName} onChange={(event) => setAuthorName(event.target.value)} placeholder="Nome" />
+        <input className="input" value={authorUsername} onChange={(event) => setAuthorUsername(event.target.value)} placeholder="@username" />
+        <input className="input" value={authorPhoto} onChange={(event) => setAuthorPhoto(event.target.value)} placeholder="Foto URL" />
+        <label className="field-label">Métricas / expiry</label>
+        <input className="input" type="number" value={viewers} onChange={(event) => setViewers(event.target.value)} placeholder="Nº de views" />
+        <input className="input" value={expiresAtMs} onChange={(event) => setExpiresAtMs(event.target.value)} placeholder="expiresAt em ms (Date.now()+...) — vazio para nunca expira" />
+        <button className="btn-primary" type="button" onClick={save}>Guardar (SYSTEM)</button>
+      </div>
+    </SheetModal>
+  );
+}
+
+function StoryViewer({ stories, user, profile, onClose }) {
+  const adminMode = useAdminMode(profile);
   const [index, setIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [systemOpen, setSystemOpen] = useState(false);
   const story = stories[index] || stories[0];
   const next = () => {
     if (index >= stories.length - 1) onClose();
@@ -505,10 +606,12 @@ function StoryViewer({ stories, user, onClose }) {
       </div>
       <div className="story-top-actions-react" onClick={(event) => event.stopPropagation()}>
         {story.uid === user?.uid ? <button className="story-viewer-delete tap" type="button" onClick={deleteStory}>Apagar</button> : null}
+        {adminMode.system ? <button className="story-viewer-delete tap" type="button" style={{ background: "rgba(251,191,36,.18)", color: "#fcd34d", borderColor: "rgba(251,191,36,.45)" }} onClick={() => setSystemOpen(true)}>SYSTEM</button> : null}
         <button className="icon-btn tap story-viewer-close" type="button" aria-label="Fechar" onClick={onClose}>
           <X size={22} />
         </button>
       </div>
+      {systemOpen ? <SystemStoryEditor story={story} onClose={() => setSystemOpen(false)} /> : null}
       <div className="story-stage" onClick={(event) => event.stopPropagation()}>
       {mediaURL ? (
         mediaType === "video" ? <video className="story-media-el" src={mediaURL} controls autoPlay playsInline /> : <img className="story-media-el" src={mediaURL} alt="" />
@@ -941,18 +1044,15 @@ function SettingsPanel({ user, profile, onClose, onBack, onAdmin }) {
             </label>
             <label className="settings-row">
               <span className="settings-row-text">
-                <span className="settings-row-label">Admin+</span>
-                <span className="settings-row-hint">Mostrar edições avançadas em toda a app</span>
+                <span className="settings-row-label">SYSTEM</span>
+                <span className="settings-row-hint">Acesso total — editar qualquer campo da app, incluindo foto, pontos, seguidores e métricas de posts/stories.</span>
               </span>
-              <Toggle checked={adminMode.adminPlus} disabled={!adminMode.adminView} onChange={toggleAdminPlus} />
+              <Toggle checked={adminMode.system} disabled={!adminMode.adminView} onChange={toggleAdminPlus} />
             </label>
-            {adminMode.adminView ? (
-              <button className="drawer-item w-full" type="button" onClick={() => { onClose(); onAdmin?.(); }}>
-              <DrawerIcon><Edit3 size={18} /></DrawerIcon>
-              <span className="drawer-label">Editar users, roles e pontos</span>
-              </button>
-            ) : null}
-            <div className="settings-row-hint" style={{ marginTop: 8 }}>OPÇÕES ADMIN</div>
+            {/* The "Editar users, roles e pontos" shortcut used to live here
+                — removed because the same God Mode entry already exists
+                in the hamburger drawer, so users had two ways into the
+                same panel from the same screen. */}
           </div>
         ) : null}
 
@@ -1075,6 +1175,34 @@ function FeedMenu({ onClose, onSearch, onRanking, onShop, onBugs, onArchive, onS
           {!adminMode.adminView && (profile?.role === "mod" || profile?.isMod) ? <><span> · </span><span className="grad-text">Moderator Access</span></> : null}
         </div>
         <div className="drawer-section" style={{ borderTop: "1px solid var(--border)", padding: "12px 18px" }}>
+          {/* SYSTEM-only nuke. Two prompts before anything happens:
+              (1) a confirm() with the scope, (2) a typed-string check
+              ("APAGAR TUDO") so a stray tap can't trigger a wipe. */}
+          {adminMode.system ? (
+            <button
+              className="drawer-item w-full"
+              type="button"
+              style={{ color: "#fca5a5" }}
+              onClick={async () => {
+                if (!window.confirm("Apagar TODOS os dados públicos do servidor?\n\nVai apagar:\n  • posts, stories, news, reports\n  • notificações, archive, roles\n  • DMs e chat global\n\nMantém: utilizadores e configuração.\n\nContinuar?")) return;
+                const typed = window.prompt("Confirmação final.\nEscreve APAGAR TUDO para prosseguir.");
+                if (typed?.trim() !== "APAGAR TUDO") {
+                  toast("Wipe cancelado.", "info");
+                  return;
+                }
+                try {
+                  await wipeAllData();
+                  toast("Dados apagados.", "success");
+                  onClose();
+                } catch (err) {
+                  toast(`Erro a apagar: ${err.message}`, "error");
+                }
+              }}
+            >
+              <DrawerIcon><Trash2 size={18} /></DrawerIcon>
+              <span className="drawer-label">Apagar TUDO (server)</span>
+            </button>
+          ) : null}
           <button className="drawer-item w-full" type="button" style={{ color: "#fca5a5" }} onClick={async () => { if (confirm("Sair da conta?")) await logout(); }}>
             <DrawerIcon><LogOut size={18} /></DrawerIcon>
             <span className="drawer-label">Sair</span>
@@ -1614,6 +1742,7 @@ function ArchiveEntryEditor({ item, entriesCount, onClose, onSave }) {
 
 export function FeedPage({ search = "" }) {
   const { loading: authLoading, user, profile, error } = useAuthProfile({ requireUser: true });
+  const adminMode = useAdminMode(profile);
   const [filter, setFilter] = useState(() => localStorage.getItem("alfa_feed_filter") || "global");
   const [modal, setModal] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -1687,6 +1816,10 @@ export function FeedPage({ search = "" }) {
           >
             Alfa Club
           </div>
+          {/* When SYSTEM is on the admin sees a tiny amber subtitle so
+              they're never in any doubt that destructive controls are
+              currently armed. */}
+          {adminMode.system ? <div className="system-access-tag">system access</div> : null}
         </div>
         <div className="app-header-right">
           <NotificationsButton user={user} onOpen={() => setModal("notifications")} />

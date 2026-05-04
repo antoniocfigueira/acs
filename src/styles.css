@@ -1225,6 +1225,29 @@ body.games-page [data-react-page="games.html"] {
   place-items: center;
 }
 
+/* SYSTEM mode subtitle — sits directly under the "Alfa Club" logo in
+   the feed header. Amber + soft glow signals to the admin that
+   destructive privileges are currently armed. */
+.system-access-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-top: 1px;
+  color: #fbbf24;
+  text-shadow: 0 0 6px rgba(251, 191, 36, 0.45);
+  text-align: center;
+  line-height: 1;
+  animation: systemAccessPulse 2.4s ease-in-out infinite;
+}
+@keyframes systemAccessPulse {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .system-access-tag { animation: none; }
+}
+
 .tap-ripple {
   display: none !important;
 }
@@ -3494,4 +3517,13 @@ html[data-theme="steampunk"] .settings-action {
 .admin-plus-inline textarea.input {
   resize: vertical;
   font-family: inherit;
+}
+
+.admin-plus-inline .field-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 6px 0 -4px;
 }

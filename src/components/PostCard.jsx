@@ -206,18 +206,29 @@ export function PostCard({ post, user, profile, compact = false }) {
 }
 
 function AdminPlusPostEditor({ post, onClose }) {
+  // SYSTEM editor for posts: every editable database field exposed
+  // directly. Counters use number inputs (server-side those are stored
+  // as integers); content fields use text/textarea.
+  const [text, setText] = useState(post.text || "");
+  const [mediaURL, setMediaURL] = useState(post.mediaURL || "");
+  const [mediaType, setMediaType] = useState(post.mediaType || "");
   const [likes, setLikes] = useState(String(post.likes || 0));
   const [dislikes, setDislikes] = useState(String(post.dislikes || 0));
   const [commentsCount, setCommentsCount] = useState(String(post.commentsCount || 0));
+  const [pinned, setPinned] = useState(post.pinnedUntil && post.pinnedUntil > Date.now());
   const save = async () => {
     try {
       await updateDoc(doc(db, "posts", post.id), {
+        text: text.slice(0, 2000),
+        mediaURL: mediaURL.trim(),
+        mediaType: mediaType.trim(),
         likes: Number(likes) || 0,
         dislikes: Number(dislikes) || 0,
         commentsCount: Number(commentsCount) || 0,
+        pinnedUntil: pinned ? Date.now() + 24 * 60 * 60 * 1000 : null,
         adminEditedAt: serverTimestamp()
       });
-      toast("Admin+ atualizado", "success");
+      toast("Post atualizado (SYSTEM)", "success");
       onClose?.();
     } catch (err) {
       toast(`Erro: ${err.message}`, "error");
@@ -225,11 +236,22 @@ function AdminPlusPostEditor({ post, onClose }) {
   };
   return (
     <div className="admin-plus-inline">
-      <div className="settings-title">Admin+</div>
+      <div className="settings-title">SYSTEM — post</div>
+      <label className="field-label">Conteúdo</label>
+      <textarea className="input" rows="4" value={text} onChange={(event) => setText(event.target.value)} placeholder="Texto do post" />
+      <input className="input" value={mediaURL} onChange={(event) => setMediaURL(event.target.value)} placeholder="Media URL" />
+      <input className="input" value={mediaType} onChange={(event) => setMediaType(event.target.value)} placeholder="Media type (image/video)" />
+      <label className="field-label">Métricas</label>
       <input className="input" type="number" value={likes} onChange={(event) => setLikes(event.target.value)} placeholder="Likes" />
       <input className="input" type="number" value={dislikes} onChange={(event) => setDislikes(event.target.value)} placeholder="Dislikes" />
       <input className="input" type="number" value={commentsCount} onChange={(event) => setCommentsCount(event.target.value)} placeholder="Comentários" />
-      <button className="btn-primary" type="button" onClick={save}>Guardar métricas</button>
+      <label className="settings-row" style={{ padding: "6px 0" }}>
+        <span className="settings-row-text">
+          <span className="settings-row-label">Fixado 24h</span>
+        </span>
+        <input type="checkbox" checked={pinned} onChange={(event) => setPinned(event.target.checked)} />
+      </label>
+      <button className="btn-primary" type="button" onClick={save}>Guardar (SYSTEM)</button>
     </div>
   );
 }
